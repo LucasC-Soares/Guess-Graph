@@ -28,6 +28,15 @@ describe('RoomsService', () => {
     expect(room.players[1]).toBeNull();
   });
 
+  it('increases the code length after a collision', async () => {
+    rooms.set('AAAAAAAAA'.slice(0, 5), {} as Room);
+    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
+
+    await expect(service.generateRoomCode()).resolves.toBe('AAAAAA');
+
+    randomSpy.mockRestore();
+  });
+
   it('rejects a missing username without throwing a TypeError', async () => {
     await expect(service.createRoom(undefined as unknown as string, 'socket-1'))
       .rejects.toThrow('Nome de usuário é obrigatório');

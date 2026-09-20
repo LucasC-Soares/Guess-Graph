@@ -56,7 +56,7 @@ export class RoomsGateway implements OnGatewayDisconnect {
   async handleJoinRoom(
     @MessageBody() data: { code: string; username: string },
     @ConnectedSocket() client: Socket,
-  ): Promise<{ code: string; status: string }> {
+  ): Promise<{ code: string; status: 'WAITING_FOR_PLAYER' | 'IN_PROGRESS' | 'FINISHED'; opponentHand: unknown[]; currentTurn: 'player1' | 'player2'; yourRole: 'player1' | 'player2' }> {
     const room = await this.roomsService.joinRoom(data.code, data.username, client.id);
     client.data.roomCode = room.code;
     void client.join(room.code);
@@ -66,17 +66,31 @@ export class RoomsGateway implements OnGatewayDisconnect {
     }));
     await this.roomsService.assignHands(room.code, createHand(), createHand());
     const updatedRoom = await this.roomsService.getRoom(room.code);
+    const myIndex = updatedRoom.players.findIndex((player) => player?.socketId === client.id);
+    const myRole: 'player1' | 'player2' = myIndex === 0 ? 'player1' : 'player2';
+    const opponent = updatedRoom.players[myIndex === 0 ? 1 : 0];
+    const roomState: {
+      status: 'WAITING_FOR_PLAYER' | 'IN_PROGRESS' | 'FINISHED';
+      opponentHand: unknown[];
+      currentTurn: 'player1' | 'player2';
+      yourRole: 'player1' | 'player2';
+    } = {
+      status: updatedRoom.status,
+      opponentHand: opponent?.hand.map(({ graph }) => graph) ?? [],
+      currentTurn: updatedRoom.currentTurn,
+      yourRole: myRole,
+    };
     for (const [index, player] of updatedRoom.players.entries()) {
       if (!player) continue;
-      const opponent = updatedRoom.players[index === 0 ? 1 : 0];
+      const opponentForPlayer = updatedRoom.players[index === 0 ? 1 : 0];
       this.server.to(player.socketId).emit(EVENTS.OPPONENT_JOINED, {
         status: updatedRoom.status,
-        opponentHand: opponent?.hand.map(({ graph }) => graph) ?? [],
+        opponentHand: opponentForPlayer?.hand.map(({ graph }) => graph) ?? [],
         currentTurn: updatedRoom.currentTurn,
         yourRole: index === 0 ? 'player1' : 'player2',
       });
     }
-    return { code: updatedRoom.code, status: updatedRoom.status };
+    return { code: updatedRoom.code, ...roomState };
   }
 
   @SubscribeMessage(EVENTS.ASK_QUESTION)
@@ -98,6 +112,7 @@ export class RoomsGateway implements OnGatewayDisconnect {
       ...filterResult,
     });
     this.server.to(room.code).emit(EVENTS.QUESTION_ANSWERED, {
+      askedBy: role,
       question: data.question,
       answer,
       ...filterResult,
@@ -105,6 +120,7 @@ export class RoomsGateway implements OnGatewayDisconnect {
       currentTurn: updatedRoom.currentTurn,
     });
     return {
+      askedBy: role,
       answer,
       ...filterResult,
       remainingCount: filterResult.remainingGraphIds.length,
