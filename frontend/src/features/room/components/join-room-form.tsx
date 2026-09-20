@@ -34,7 +34,7 @@ export function JoinRoomForm() {
     <form className="form-stack" onSubmit={handleSubmit(onSubmit)}>
       <h2>{t('joinRoom')}</h2>
       <Field label={t('roomCode')} error={errors.code?.message}>
-        <Input className="input" placeholder="ABCDE" {...register('code')} />
+        <Input className="input" placeholder="K7M2Q" {...register('code')} />
       </Field>
       <Field label={t('username')} error={errors.username?.message}>
         <Input className="input" placeholder="Bob" {...register('username')} />
