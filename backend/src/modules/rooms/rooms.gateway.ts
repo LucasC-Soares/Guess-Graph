@@ -5,11 +5,12 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
+import { OnGatewayDisconnect } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { RoomsService } from './rooms.service';
 import { GraphGeneratorService } from '../graphs/graph-generator.service';
 import { GraphPropertiesService } from '../graphs/graph-properties.service';
-import { Question } from '../questions/question-catalog';
+import { Question, answerQuestion } from '../questions/question-catalog';
 
 /**
  * Um evento por ação do jogo. Mantenha os payloads pequenos e nomeados
@@ -22,17 +23,20 @@ const EVENTS = {
   JOIN_ROOM: 'room:join',
   ASK_QUESTION: 'game:ask-question',
   MAKE_GUESS: 'game:make-guess',
+  CLOSE_ROOM: 'room:close',
+  REMATCH: 'game:rematch',
   // Eventos emitidos pelo servidor (broadcast):
   ROOM_UPDATED: 'room:updated',
   OPPONENT_JOINED: 'room:opponent-joined',
   QUESTION_ANSWERED: 'game:question-answered',
   GAME_OVER: 'game:over',
+  ROOM_CLOSED: 'room:closed',
 } as const;
 
 @WebSocketGateway({ cors: { origin: process.env.FRONTEND_URL ?? 'http://localhost:3000' } })
-export class RoomsGateway {
+export class RoomsGateway implements OnGatewayDisconnect {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   constructor(
     private readonly roomsService: RoomsService,
@@ -41,64 +45,147 @@ export class RoomsGateway {
   ) {}
 
   @SubscribeMessage(EVENTS.CREATE_ROOM)
-  handleCreateRoom(@MessageBody() data: { username: string }, @ConnectedSocket() client: Socket) {
-    // TODO 1: this.roomsService.createRoom(data.username, client.id) -> pega o código
-    // TODO 2: client.join(code) -- entra na "room" do socket.io (mesmo nome do código)
-    // TODO 3: emitir de volta pro criador o código da sala (ack, não broadcast:
-    //   return { code } como retorno direto do handler, socket.io suporta isso)
-    throw new Error('não implementado');
+  async handleCreateRoom(@MessageBody() data: { username: string }, @ConnectedSocket() client: Socket) {
+    const code = await this.roomsService.createRoom(data.username, client.id);
+    client.data.roomCode = code;
+    void client.join(code);
+    return { code, status: 'WAITING_FOR_PLAYER' };
   }
 
   @SubscribeMessage(EVENTS.JOIN_ROOM)
-  handleJoinRoom(
+  async handleJoinRoom(
     @MessageBody() data: { code: string; username: string },
     @ConnectedSocket() client: Socket,
-  ) {
-    // TODO 1: this.roomsService.joinRoom(data.code, data.username, client.id)
-    // TODO 2: client.join(data.code)
-    // TODO 3: gerar as mãos dos dois jogadores AQUI (é o momento em que a
-    //   sala fica completa e o jogo pode começar):
-    //   const graphsP1 = this.graphGenerator.generateBatch(N, vertexCount);
-    //   const graphsP2 = this.graphGenerator.generateBatch(N, vertexCount);
-    //   computar GraphProperties de cada um (this.graphProperties.computeAll)
-    //   this.roomsService.assignHands(data.code, ...)
-    // TODO 4: this.server.to(data.code).emit(EVENTS.OPPONENT_JOINED, ...)
-    //   -- avisa os DOIS clientes que o jogo começou, mandando pra cada um
-    //   APENAS os grafos do oponente (nunca os seus próprios, senão o
-    //   jogador vê a resposta e o jogo perde a graça)
-    throw new Error('não implementado');
+  ): Promise<{ code: string; status: string }> {
+    const room = await this.roomsService.joinRoom(data.code, data.username, client.id);
+    client.data.roomCode = room.code;
+    void client.join(room.code);
+    const createHand = () => this.graphGenerator.generateHand().map((graph) => ({
+      graph,
+      properties: this.graphProperties.computeAll(graph),
+    }));
+    await this.roomsService.assignHands(room.code, createHand(), createHand());
+    const updatedRoom = await this.roomsService.getRoom(room.code);
+    for (const [index, player] of updatedRoom.players.entries()) {
+      if (!player) continue;
+      const opponent = updatedRoom.players[index === 0 ? 1 : 0];
+      this.server.to(player.socketId).emit(EVENTS.OPPONENT_JOINED, {
+        status: updatedRoom.status,
+        opponentHand: opponent?.hand.map(({ graph }) => graph) ?? [],
+        currentTurn: updatedRoom.currentTurn,
+        yourRole: index === 0 ? 'player1' : 'player2',
+      });
+    }
+    return { code: updatedRoom.code, status: updatedRoom.status };
   }
 
   @SubscribeMessage(EVENTS.ASK_QUESTION)
-  handleAskQuestion(
-    @MessageBody() data: { code: string; question: Question },
+  async handleAskQuestion(
+    @MessageBody() data: { question: Question },
     @ConnectedSocket() client: Socket,
   ) {
-    // TODO 1: buscar a sala, achar QUAL jogador é o `client` e qual é o oponente
-    // TODO 2: validar que é a vez desse jogador (currentTurn) -- senão, ignorar/erro
-    // TODO 3: a pergunta é sobre o grafo do OPONENTE: pegar a hand do oponente,
-    //   decidir A QUAL grafo da mão a pergunta se refere (provavelmente o
-    //   payload já inclui um graphId escondido — repensar o contrato se preciso)
-    // TODO 4: answerQuestion(properties, data.question) -> resposta booleana
-    // TODO 5: this.roomsService.recordQuestion(...) -- salva no log e alterna turno
-    // TODO 6: this.server.to(data.code).emit(EVENTS.QUESTION_ANSWERED, { ... })
-    //   -- manda a pergunta E a resposta pros dois (transparência: os dois veem
-    //   o histórico de perguntas, só não veem os grafos crus do oponente)
-    throw new Error('não implementado');
+    const room = await this.roomsService.getRoomForSocket(client.id, client.data.roomCode);
+    const role = this.roomsService.getPlayerRole(room, client.id);
+    if (!role || room.currentTurn !== role) throw new Error('Não é a vez deste jogador');
+    const target = this.roomsService.getActiveOpponentGraph(room, role);
+    if (!target) throw new Error('Grafo não encontrado');
+    const answer = answerQuestion(target.properties, data.question);
+    const filterResult = this.roomsService.filterOpponentGraphs(room, role, data.question, answer);
+    const updatedRoom = await this.roomsService.recordQuestion(room.code, {
+      askedBy: role,
+      question: data.question,
+      answer,
+      ...filterResult,
+    });
+    this.server.to(room.code).emit(EVENTS.QUESTION_ANSWERED, {
+      question: data.question,
+      answer,
+      ...filterResult,
+      remainingCount: filterResult.remainingGraphIds.length,
+      currentTurn: updatedRoom.currentTurn,
+    });
+    return {
+      answer,
+      ...filterResult,
+      remainingCount: filterResult.remainingGraphIds.length,
+      finished: false,
+      currentTurn: updatedRoom.currentTurn,
+    };
   }
 
   @SubscribeMessage(EVENTS.MAKE_GUESS)
-  handleMakeGuess(
-    @MessageBody() data: { code: string; graphId: string; guessedGraphId: string },
+  async handleMakeGuess(
+    @MessageBody() data: { guessedGraphId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    // TODO: comparar o chute com o grafo real (por id), atualizar score,
-    //   checar condição de vitória (ex: acertou todos os grafos do oponente),
-    //   emitir EVENTS.GAME_OVER se acabou, senão emitir atualização de estado.
-    throw new Error('não implementado');
+    const room = await this.roomsService.getRoomForSocket(client.id, client.data.roomCode);
+    const role = this.roomsService.getPlayerRole(room, client.id);
+    if (!role || room.currentTurn !== role) throw new Error('Não é a vez deste jogador');
+    const player = room.players[role === 'player1' ? 0 : 1];
+    const opponent = room.players[role === 'player1' ? 1 : 0];
+    const target = room.players[role === 'player1' ? 0 : 1]?.remainingOpponentGraphIds.length === 1
+      ? this.roomsService.getOnlyRemainingOpponentGraph(room, role)
+      : this.roomsService.getActiveOpponentGraph(room, role);
+    if (!player || !opponent || !target) {
+      throw new Error('Grafo não encontrado');
+    }
+    const correct = target.graph.id === data.guessedGraphId;
+    if (correct && !player.guessedGraphIds.includes(target.graph.id)) {
+      player.guessedGraphIds.push(target.graph.id);
+      player.score += 1;
+      this.roomsService.advanceActiveOpponentGraph(room, role);
+    }
+    const finished = true;
+    const winner = correct ? role : role === 'player1' ? 'player2' : 'player1';
+    room.status = 'FINISHED';
+    this.server.to(room.code).emit(EVENTS.GAME_OVER, {
+      winner,
+      score: correct ? player.score : opponent.score,
+      correct,
+    });
+    await this.roomsService.saveRoom(room);
+    return { correct, finished, score: player.score };
   }
 
-  // TODO: handleDisconnect(client): @SubscribeMessage não cobre isso -- use o
-  //   ciclo de vida do gateway (implements OnGatewayDisconnect) pra limpar
-  //   salas quando os dois jogadores saem.
+  @SubscribeMessage(EVENTS.REMATCH)
+  async handleRematch(@ConnectedSocket() client: Socket) {
+    const room = await this.roomsService.getRoomForSocket(client.id, client.data.roomCode);
+    const role = this.roomsService.getPlayerRole(room, client.id);
+    if (!role) throw new Error('Jogador não pertence à sala');
+    const accepted = await this.roomsService.requestRematch(room.code, role);
+    if (!accepted) {
+      this.server.to(room.code).emit(EVENTS.ROOM_UPDATED, { rematchRequestedBy: role });
+      return { accepted: false, status: 'WAITING_FOR_REMATCH' };
+    }
+    const createHand = () => this.graphGenerator.generateHand().map((graph) => ({
+      graph,
+      properties: this.graphProperties.computeAll(graph),
+    }));
+    await this.roomsService.assignHands(room.code, createHand(), createHand());
+    const restartedRoom = await this.roomsService.getRoom(room.code);
+    for (const [index, player] of restartedRoom.players.entries()) {
+      if (!player) continue;
+      const opponent = restartedRoom.players[index === 0 ? 1 : 0];
+      this.server.to(player.socketId).emit(EVENTS.OPPONENT_JOINED, {
+        status: restartedRoom.status,
+        opponentHand: opponent?.hand.map(({ graph }) => graph) ?? [],
+        currentTurn: restartedRoom.currentTurn,
+        yourRole: index === 0 ? 'player1' : 'player2',
+      });
+    }
+    return { accepted: true, status: restartedRoom.status };
+  }
+
+  @SubscribeMessage(EVENTS.CLOSE_ROOM)
+  async handleCloseRoom(@ConnectedSocket() client: Socket) {
+    const room = await this.roomsService.getRoomForSocket(client.id, client.data.roomCode);
+    await this.roomsService.removeRoom(room.code);
+    this.server.to(room.code).emit(EVENTS.ROOM_CLOSED);
+    return { closed: true };
+  }
+
+  async handleDisconnect(client: Socket): Promise<void> {
+    const code = await this.roomsService.removePlayer(client.id);
+    if (code) this.server.to(code).emit(EVENTS.ROOM_UPDATED, { status: 'WAITING_FOR_PLAYER' });
+  }
 }

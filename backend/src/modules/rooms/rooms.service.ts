@@ -1,37 +1,204 @@
-import { Injectable } from '@nestjs/common';
-import { Room } from './interfaces/room.interface';
+import { Inject, Injectable } from '@nestjs/common';
+import { GraphWithProperties } from '../graphs/interfaces/graph.interface';
+import { PlayerState, QuestionLogEntry, Room } from './interfaces/room.interface';
+import { RedisRoomStore, RoomStore } from './redis-room-store';
+import { Question, answerQuestion } from '../questions/question-catalog';
 
-/**
- * Estado do jogo em memória — suficiente pro MVP (uma instância do servidor).
- * TODO: se precisar escalar horizontalmente no futuro, migrar esse Map pra
- * Redis (não é necessário agora, e adicionaria complexidade sem necessidade).
- */
+/** Estado efêmero das salas, compartilhado entre instâncias via Redis. */
 @Injectable()
 export class RoomsService {
-  private rooms = new Map<string, Room>();
+  private readonly codeAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  constructor(@Inject(RedisRoomStore) private readonly roomStore: RoomStore) {}
 
   /** Gera um código curto e fácil de compartilhar (ex: 4-6 letras maiúsculas). */
-  generateRoomCode(): string {
-    // TODO: gerar código aleatório (ex: 4 letras de A-Z) e garantir que não
-    // colide com uma sala já existente (checar this.rooms.has(code)).
-    throw new Error('não implementado');
+  async generateRoomCode(): Promise<string> {
+    do {
+      let code = '';
+      for (let index = 0; index < 5; index += 1) {
+        code += this.codeAlphabet[Math.floor(Math.random() * this.codeAlphabet.length)];
+      }
+      if (!(await this.roomStore.exists(code))) return code;
+    } while (true);
   }
 
-  // TODO: createRoom(hostUsername, hostSocketId): cria Room com status WAITING_FOR_PLAYER,
-  //   player1 preenchido, player2 = null. Salva no Map e retorna o código.
+  async createRoom(username: string, socketId: string): Promise<string> {
+    const code = await this.generateRoomCode();
+    const room: Room = {
+      code,
+      status: 'WAITING_FOR_PLAYER',
+      players: [this.createPlayer(username, socketId), null],
+      currentTurn: 'player1',
+      questionLog: [],
+      rematchVotes: [],
+    };
+    await this.roomStore.set(room);
+    return code;
+  }
 
-  // TODO: joinRoom(code, guestUsername, guestSocketId): preenche player2,
-  //   muda status pra IN_PROGRESS. Retornar erro se a sala não existir,
-  //   já estiver cheia, ou já estiver em andamento.
+  async joinRoom(code: string, username: string, socketId: string): Promise<Room> {
+    const room = await this.getRoom(code);
+    if (room.status !== 'WAITING_FOR_PLAYER' || room.players[1]) {
+      throw new Error('A sala já está cheia ou em andamento');
+    }
+    room.players[1] = this.createPlayer(username, socketId);
+    room.status = 'IN_PROGRESS';
+    await this.roomStore.set(room);
+    return room;
+  }
 
-  // TODO: getRoom(code): busca simples no Map (throw se não existir)
+  async getRoom(code: string): Promise<Room> {
+    const normalizedCode = code.trim().toUpperCase();
+    const room = await this.roomStore.get(normalizedCode);
+    if (!room) throw new Error('Sala não encontrada');
+    return room;
+  }
 
-  // TODO: assignHands(code, player1Graphs, player2Graphs): popular `hand` de cada jogador
-  //   com os grafos gerados (ver GraphGeneratorService + GraphPropertiesService)
+  async assignHands(code: string, player1Graphs: GraphWithProperties[], player2Graphs: GraphWithProperties[]): Promise<Room> {
+    const room = await this.getRoom(code);
+    if (!room.players[0] || !room.players[1]) {
+      throw new Error('A sala precisa de dois jogadores para receber as mãos');
+    }
+    room.players[0].hand = player1Graphs;
+    room.players[1].hand = player2Graphs;
+    room.players[0].activeOpponentGraphId = player2Graphs[0]?.graph.id;
+    room.players[1].activeOpponentGraphId = player1Graphs[0]?.graph.id;
+    room.players[0].remainingOpponentGraphIds = player2Graphs.map(({ graph }) => graph.id);
+    room.players[1].remainingOpponentGraphIds = player1Graphs.map(({ graph }) => graph.id);
+    await this.roomStore.set(room);
+    return room;
+  }
 
-  // TODO: recordQuestion(code, entry: QuestionLogEntry): adiciona ao questionLog
-  //   e alterna currentTurn
+  async recordQuestion(code: string, entry: QuestionLogEntry): Promise<Room> {
+    const room = await this.getRoom(code);
+    room.questionLog.push(entry);
+    room.currentTurn = room.currentTurn === 'player1' ? 'player2' : 'player1';
+    await this.roomStore.set(room);
+    return room;
+  }
 
-  // TODO: removeRoom(code) / cleanup: chamado quando os dois jogadores desconectam
-  //   (evita vazamento de memória com salas abandonadas — considerar TTL simples).
+  filterOpponentGraphs(
+    room: Room,
+    role: 'player1' | 'player2',
+    question: Question,
+    answer: boolean,
+  ): { eliminatedGraphIds: string[]; remainingGraphIds: string[] } {
+    const player = room.players[role === 'player1' ? 0 : 1];
+    const opponent = room.players[role === 'player1' ? 1 : 0];
+    if (!player || !opponent) throw new Error('Jogadores não encontrados');
+
+    const remainingSet = new Set(player.remainingOpponentGraphIds);
+    const eliminatedGraphIds = opponent.hand
+      .filter(({ graph, properties }) => remainingSet.has(graph.id) && answerQuestion(properties, question) !== answer)
+      .map(({ graph }) => graph.id);
+    player.remainingOpponentGraphIds = player.remainingOpponentGraphIds
+      .filter((graphId) => !eliminatedGraphIds.includes(graphId));
+
+    return {
+      eliminatedGraphIds,
+      remainingGraphIds: player.remainingOpponentGraphIds,
+    };
+  }
+
+  async removeRoom(code: string): Promise<void> {
+    await this.roomStore.delete(code.trim().toUpperCase());
+  }
+
+  async removePlayer(socketId: string): Promise<string | undefined> {
+    for (const code of await this.roomStore.listCodes()) {
+      const room = await this.roomStore.get(code);
+      if (!room) continue;
+      const playerIndex = room.players.findIndex((player) => player?.socketId === socketId);
+      if (playerIndex === -1) continue;
+      room.players[playerIndex] = null;
+      if (!room.players[0] && !room.players[1]) await this.roomStore.delete(code);
+      else {
+        room.status = 'WAITING_FOR_PLAYER';
+        await this.roomStore.set(room);
+      }
+      return code;
+    }
+    return undefined;
+  }
+
+  async getRoomForSocket(socketId: string, roomCode?: string): Promise<Room> {
+    if (!roomCode) throw new Error('Socket não está associado a uma sala');
+    const room = await this.getRoom(roomCode);
+    if (!this.getPlayerRole(room, socketId)) throw new Error('Socket não pertence à sala');
+    return room;
+  }
+
+  async saveRoom(room: Room): Promise<void> {
+    await this.roomStore.set(room);
+  }
+
+  async requestRematch(code: string, role: 'player1' | 'player2'): Promise<boolean> {
+    const room = await this.getRoom(code);
+    if (room.status !== 'FINISHED') throw new Error('A revanche só pode ser solicitada após o fim da partida');
+    if (!room.rematchVotes.includes(role)) room.rematchVotes.push(role);
+    if (room.rematchVotes.length < 2) {
+      await this.roomStore.set(room);
+      return false;
+    }
+    room.status = 'IN_PROGRESS';
+    room.currentTurn = 'player1';
+    room.questionLog = [];
+    room.rematchVotes = [];
+    for (const player of room.players) {
+      if (!player) continue;
+      player.hand = [];
+      player.activeOpponentGraphId = undefined;
+      player.remainingOpponentGraphIds = [];
+      player.score = 0;
+      player.guessedGraphIds = [];
+    }
+    await this.roomStore.set(room);
+    return true;
+  }
+
+  getActiveOpponentGraph(room: Room, role: 'player1' | 'player2'): GraphWithProperties | undefined {
+    const player = room.players[role === 'player1' ? 0 : 1];
+    const opponent = room.players[role === 'player1' ? 1 : 0];
+    return opponent?.hand.find(({ graph }) => graph.id === player?.activeOpponentGraphId);
+  }
+
+  getOnlyRemainingOpponentGraph(room: Room, role: 'player1' | 'player2'): GraphWithProperties | undefined {
+    const player = room.players[role === 'player1' ? 0 : 1];
+    const opponent = room.players[role === 'player1' ? 1 : 0];
+    if (!player || player.remainingOpponentGraphIds.length !== 1) return undefined;
+    return opponent?.hand.find(({ graph }) => graph.id === player.remainingOpponentGraphIds[0]);
+  }
+
+  advanceActiveOpponentGraph(room: Room, role: 'player1' | 'player2'): void {
+    const player = room.players[role === 'player1' ? 0 : 1];
+    const opponent = room.players[role === 'player1' ? 1 : 0];
+    if (!player || !opponent) return;
+    player.activeOpponentGraphId = opponent.hand
+      .map(({ graph }) => graph.id)
+      .find((graphId) => !player.guessedGraphIds.includes(graphId));
+  }
+
+  getPlayerRole(room: Room, socketId: string): 'player1' | 'player2' | undefined {
+    if (room.players[0]?.socketId === socketId) return 'player1';
+    if (room.players[1]?.socketId === socketId) return 'player2';
+    return undefined;
+  }
+
+  private createPlayer(username: string, socketId: string): PlayerState {
+    if (typeof username !== 'string' || !username.trim()) {
+      throw new Error('Nome de usuário é obrigatório');
+    }
+    if (typeof socketId !== 'string' || !socketId.trim()) {
+      throw new Error('Socket é obrigatório');
+    }
+    return {
+      username: username.trim(),
+      socketId,
+      hand: [],
+      remainingOpponentGraphIds: [],
+      score: 0,
+      guessedGraphIds: [],
+    };
+  }
+
 }

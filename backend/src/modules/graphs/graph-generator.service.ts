@@ -9,29 +9,38 @@ import { Graph } from './interfaces/graph.interface';
  */
 @Injectable()
 export class GraphGeneratorService {
+  static readonly HAND_SIZE = 12;
+  static readonly MIN_HAND_VERTEX_COUNT = 3;
+  static readonly MAX_HAND_VERTEX_COUNT = 20;
+
+  generateHand(): Graph[] {
+    return Array.from({ length: GraphGeneratorService.HAND_SIZE }, () => {
+      const vertexCount = GraphGeneratorService.MIN_HAND_VERTEX_COUNT
+        + Math.floor(Math.random() * (
+          GraphGeneratorService.MAX_HAND_VERTEX_COUNT
+          - GraphGeneratorService.MIN_HAND_VERTEX_COUNT
+          + 1
+        ));
+      return this.generateBatch(1, vertexCount)[0];
+    });
+  }
+
   /**
    * Gera `count` grafos aleatórios com `vertexCount` vértices cada.
    */
   generateBatch(count: number, vertexCount: number): Graph[] {
-    // TODO 1: pra cada grafo, decidir uma densidade de arestas aleatória
-    //   (ex: probabilidade p entre 0.2 e 0.6 de cada aresta possível existir —
-    //   modelo Erdős–Rényi simples é suficiente pro MVP).
-
-    // TODO 2: gerar arestas:
-    //   const edges: [number, number][] = [];
-    //   for (let i = 0; i < vertexCount; i++) {
-    //     for (let j = i + 1; j < vertexCount; j++) {
-    //       if (Math.random() < p) edges.push([i, j]);
-    //     }
-    //   }
-
-    // TODO 3 (importante pra jogabilidade): considere garantir variedade
-    //   forçada — ex: de cada leva de N grafos, gerar propositalmente pelo
-    //   menos 1 bipartido, 1 com ciclo, 1 árvore — senão o jogo fica repetitivo
-    //   ou (pior) as perguntas ficam pouco informativas.
-
-    // TODO 4: return edges.map(...) montando { id: randomUUID(), vertexCount, edges }
-
-    throw new Error('GraphGeneratorService.generateBatch: não implementado ainda');
+    if (!Number.isInteger(count) || count < 0 || !Number.isInteger(vertexCount) || vertexCount < 1) {
+      throw new Error('count e vertexCount precisam ser inteiros válidos');
+    }
+    return Array.from({ length: count }, () => {
+      const edges: [number, number][] = [];
+      const probability = 0.2 + Math.random() * 0.4;
+      for (let first = 0; first < vertexCount; first += 1) {
+        for (let second = first + 1; second < vertexCount; second += 1) {
+          if (Math.random() < probability) edges.push([first, second]);
+        }
+      }
+      return { id: randomUUID(), vertexCount, edges };
+    });
   }
 }

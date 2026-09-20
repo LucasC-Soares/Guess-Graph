@@ -2,22 +2,22 @@ import { Injectable } from '@nestjs/common';
 import { Graph, GraphProperties } from './interfaces/graph.interface';
 
 /**
- * Calcula as propriedades estruturais de um grafo. Cada método aqui é
- * um algoritmo clássico de CP — reaproveite o que você já tem no seu
- * caderno de time (BFS/DFS, bipartição por 2-coloração, ponte via
- * DFS de tempo de descoberta/low-link).
+ * Calcula as propriedades estruturais de um grafo.
  */
 @Injectable()
 export class GraphPropertiesService {
   computeAll(graph: Graph): GraphProperties {
-    // TODO: montar lista de adjacência a partir de graph.edges
-    //   const adj: number[][] = Array.from({ length: graph.vertexCount }, () => []);
-    //   for (const [u, v] of graph.edges) { adj[u].push(v); adj[v].push(u); }
 
-    const isConnected = this.checkConnected(graph);
-    const isBipartite = this.checkBipartite(graph);
-    const hasCycle = this.checkHasCycle(graph);
-    const hasBridge = this.checkHasBridge(graph);
+    const adj: number[][] = Array.from({ length: graph.vertexCount }, () => []);
+    for (const [u, v] of graph.edges) {
+      adj[u].push(v);
+      adj[v].push(u);
+    }
+
+    const isConnected = this.checkConnected(graph, adj);
+    const isBipartite = this.checkBipartite(graph, adj);
+    const hasCycle = this.checkHasCycle(graph, adj);
+    const hasBridge = this.checkHasBridge(graph, adj);
 
     return {
       isConnected,
@@ -26,41 +26,157 @@ export class GraphPropertiesService {
       isTree: isConnected && !hasCycle,
       hasBridge,
       maxDegree: this.computeMaxDegree(graph),
+      minDegree: this.computeMinDegree(graph),
     };
   }
-
   /** BFS/DFS simples a partir do vértice 0, checando se visita todos. */
-  private checkConnected(graph: Graph): boolean {
-    // TODO: BFS/DFS clássico. Grafo com vertexCount === 0 ou 1 é trivialmente conexo.
-    throw new Error('não implementado');
+  private checkConnected(graph: Graph, adj: number[][]): boolean {
+    if(graph.vertexCount <= 1) return true;
+
+    function dfs(v: number, visited: boolean[], adj: number[][]) {
+      visited[v] = true;
+      for (const neighbor of adj[v]) {
+        if (!visited[neighbor]) {
+          dfs(neighbor, visited, adj);
+        }
+      }
+    }
+
+    const visited: boolean[] = Array(graph.vertexCount).fill(false);
+    dfs(0, visited, adj);
+
+    return visited.every(v => v);
   }
 
   /** 2-coloração via BFS/DFS: bipartido sse não há aresta entre vértices de mesma cor. */
-  private checkBipartite(graph: Graph): boolean {
-    // TODO: array de cores (-1 = não visitado), BFS colorindo com cor oposta
-    //   a cada vizinho; se encontrar vizinho com mesma cor, retorna false.
-    //   Atenção: grafo pode ser desconexo — rodar a partir de TODO vértice
-    //   ainda não visitado, não só do vértice 0.
-    throw new Error('não implementado');
+  private checkBipartite(graph: Graph, adj: number[][]): boolean {
+    if(graph.vertexCount <= 1) return true;
+
+    function bfs(start: number, colors: number[], adj: number[][]): boolean {
+      const queue: number[] = [start];
+      colors[start] = 0; // Cor inicial
+
+      while (queue.length > 0) {
+        const v = queue.shift()!;
+        for (const neighbor of adj[v]) {
+          if (colors[neighbor] === -1) {
+            // Atribuir cor oposta
+            colors[neighbor] = 1 - colors[v];
+            queue.push(neighbor);
+          } else if (colors[neighbor] === colors[v]) {
+            // Encontrou vizinho com mesma cor
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    const colors: number[] = Array(graph.vertexCount).fill(-1);
+
+    for (let i = 0; i < graph.vertexCount; i++) {
+      if (colors[i] === -1) {
+        if (!bfs(i, colors, adj)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   /** DFS com detecção de aresta de retorno (back edge) em grafo não-direcionado. */
-  private checkHasCycle(graph: Graph): boolean {
-    // TODO: DFS guardando o pai de cada vértice; se encontrar um vizinho
-    //   já visitado que não seja o pai, há ciclo. Cuidado com multigrafos/
-    //   arestas paralelas se você permitir isso no gerador (provavelmente não vai permitir).
-    throw new Error('não implementado');
+  private checkHasCycle(graph: Graph, adj: number[][]): boolean {
+    if(graph.vertexCount <= 1) return false;
+
+    function dfs(v: number, parent: number, visited: boolean[], adj: number[][]): boolean {
+      visited[v] = true;
+      for (const neighbor of adj[v]) {
+        if (!visited[neighbor]) {
+          if (dfs(neighbor, v, visited, adj)) {
+            return true;
+          }
+        } else if (neighbor !== parent) {
+          return true; // Encontrou ciclo
+        }
+      }
+      return false;
+    }
+
+    const visited: boolean[] = Array(graph.vertexCount).fill(false);
+
+    for (let i = 0; i < graph.vertexCount; i++) {
+      if (!visited[i]) {
+        if (dfs(i, -1, visited, adj)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   /** Ponte: aresta cuja remoção desconecta o grafo (algoritmo de Tarjan, low-link). */
-  private checkHasBridge(graph: Graph): boolean {
-    // TODO: DFS com tin[]/low[] (você já tem isso pronto no caderno de time,
-    // seção de pontes e pontos de articulação — é essencialmente copiar e adaptar).
-    throw new Error('não implementado');
+  private checkHasBridge(graph: Graph, adj: number[][]): boolean {
+    if(graph.vertexCount <= 1) return false;
+
+    function dfs(v: number, parent: number, visited: boolean[], tin: number[], low: number[], timer: { value: number }, adj: number[][]): boolean {
+      visited[v] = true;
+      tin[v] = low[v] = timer.value++;
+      for (const neighbor of adj[v]) {
+        if (neighbor === parent) continue; // Ignorar a aresta de volta para o pai
+        if (!visited[neighbor]) {
+          if (dfs(neighbor, v, visited, tin, low, timer, adj)) {
+            return true; // Encontrou ponte
+          }
+          low[v] = Math.min(low[v], low[neighbor]);
+          if (low[neighbor] > tin[v]) {
+            return true; // Aresta (v, neighbor) é uma ponte
+          }
+        } else {
+          low[v] = Math.min(low[v], tin[neighbor]);
+        }
+      }
+      return false;
+    }
+
+    const visited: boolean[] = Array(graph.vertexCount).fill(false);
+    const tin: number[] = Array(graph.vertexCount).fill(-1);
+    const low: number[] = Array(graph.vertexCount).fill(-1);
+    const timer = { value: 0 };
+
+    for (let i = 0; i < graph.vertexCount; i++) {
+      if (!visited[i]) {
+        if (dfs(i, -1, visited, tin, low, timer, adj)) {
+          return true; // Encontrou ponte
+        }
+      }
+    }
+
+    return false;
   }
 
   private computeMaxDegree(graph: Graph): number {
-    // TODO: contar grau de cada vértice a partir de graph.edges e pegar o máximo.
-    throw new Error('não implementado');
+    if(graph.vertexCount <= 1) return 0;
+
+    const degree: number[] = Array(graph.vertexCount).fill(0);
+    for (const [u, v] of graph.edges) {
+      degree[u]++;
+      degree[v]++;
+    }
+
+    return Math.max(...degree);
+  }
+
+  private computeMinDegree(graph: Graph): number {
+    if(graph.vertexCount <= 1) return 0;
+
+    const degree: number[] = Array(graph.vertexCount).fill(0);
+    for (const [u, v] of graph.edges) {
+      degree[u]++;
+      degree[v]++;
+    }
+
+    return Math.min(...degree);
   }
 }

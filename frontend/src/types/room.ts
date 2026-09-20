@@ -6,6 +6,17 @@ export interface QuestionLogEntryDTO {
   askedBy: 'player1' | 'player2';
   questionLabel: string;
   answer: boolean;
+  eliminatedGraphIds: string[];
+  remainingGraphIds: string[];
+}
+
+export interface QuestionAnsweredDTO {
+  question: import('./graph').Question;
+  answer: boolean;
+  eliminatedGraphIds: string[];
+  remainingGraphIds: string[];
+  remainingCount: number;
+  currentTurn: 'player1' | 'player2';
 }
 
 /**
@@ -13,7 +24,6 @@ export interface QuestionLogEntryDTO {
  * (OPPONENT_JOINED / ROOM_UPDATED).
  */
 export interface RoomStateDTO {
-  code: string;
   status: RoomStatus;
   opponentHand: GraphDTO[];
   currentTurn: 'player1' | 'player2';

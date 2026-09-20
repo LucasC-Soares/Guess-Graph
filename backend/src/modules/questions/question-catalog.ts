@@ -17,8 +17,6 @@ export enum QuestionType {
 
 export interface Question {
   type: QuestionType;
-  // TODO: se for MAX_DEGREE_GREATER_THAN, o jogador precisa enviar um `threshold`
-  //   junto — considerar um campo opcional `params?: { threshold?: number }`.
   params?: { threshold?: number };
 }
 
@@ -40,9 +38,10 @@ export function answerQuestion(properties: GraphProperties, question: Question):
     case QuestionType.HAS_BRIDGE:
       return properties.hasBridge;
     case QuestionType.MAX_DEGREE_GREATER_THAN:
-      // TODO: validar que params?.threshold existe antes de comparar
-      //   (lançar erro ou tratar como pergunta inválida se faltar)
-      return properties.maxDegree > (question.params?.threshold ?? 0);
+      if (question.params?.threshold === undefined) {
+        throw new Error('A pergunta precisa de params.threshold');
+      }
+      return properties.maxDegree > question.params.threshold;
     default:
       throw new Error(`Pergunta desconhecida: ${question.type}`);
   }

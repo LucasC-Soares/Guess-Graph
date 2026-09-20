@@ -1,5 +1,8 @@
 # Guess Graph
 
+As decisoes arquiteturais do projeto estao documentadas em [docs/adr/README.md](docs/adr/README.md).
+O contrato da API HTTP e dos eventos Socket.IO esta em [docs/api.md](docs/api.md).
+
 Jogo 1x1 onde cada jogador tenta adivinhar as propriedades estruturais dos
 grafos do oponente através de perguntas de sim/não.
 
@@ -7,7 +10,7 @@ grafos do oponente através de perguntas de sim/não.
 
 ```
 guess-graph/
-├── backend/    NestJS + WebSockets (Socket.io), estado em memória
+├── backend/    NestJS + WebSockets (Socket.io), estado efêmero no Redis
 └── frontend/   Next.js (App Router) + Bulletproof React
 ```
 
@@ -50,7 +53,7 @@ frontend/src/
    `entities/graph/model/types.ts`).
 
 4. **`modules/rooms/rooms.service.ts`**
-   Estado da sala em memória (Map). Implemente `createRoom`, `joinRoom`,
+   Estado efêmero da sala no Redis. Implemente `createRoom`, `joinRoom`,
    `assignHands`, `recordQuestion`. Teste isso separado do gateway
    (testes unitários simples, sem precisar de socket real).
 
@@ -71,3 +74,24 @@ Todo arquivo com lógica tem `// TODO:` marcando o que falta e uma pista de
 como implementar. Comece pelo `graph-properties.service.ts` — ele é
 puro algoritmo, sem NestJS/socket no meio, então é o mais fácil de validar
 isoladamente antes de subir a stack toda.
+
+## Docker Compose
+
+Com Docker BuildKit habilitado, suba frontend, backend e Redis juntos:
+
+```bash
+docker compose up --build
+```
+
+Frontend: http://localhost:3000. Backend e Socket.IO: http://localhost:3001.
+O Redis é efêmero e não usa volume persistente. Os builds usam cache local em
+`.docker-cache/`, ignorado pelos contextos Docker.
+
+Para usar os estágios de desenvolvimento:
+
+```bash
+BUILD_TARGET=development docker compose up --build
+```
+
+As portas e a URL pública do WebSocket podem ser sobrescritas por
+`FRONTEND_PORT`, `BACKEND_PORT` e `NEXT_PUBLIC_WS_URL`.

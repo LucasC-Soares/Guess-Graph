@@ -8,9 +8,17 @@ export function createRoom(username: string): Promise<{ code: string }> {
   throw new Error('não implementado');
 }
 
-// TODO: emit JOIN_ROOM { code, username }
+// TODO: emit JOIN_ROOM { code, username }; the server associates the socket with the room
 export function joinRoom(code: string, username: string): void {
   throw new Error('não implementado');
+}
+
+export function requestRematch(): void {
+  getSocket().emit(SOCKET_EVENTS.REMATCH);
+}
+
+export function closeRoom(): void {
+  getSocket().emit(SOCKET_EVENTS.CLOSE_ROOM);
 }
 
 // TODO: getSocket().on(SOCKET_EVENTS.OPPONENT_JOINED, callback)
