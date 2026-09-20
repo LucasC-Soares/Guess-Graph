@@ -5,17 +5,20 @@
 
 ## Contexto
 
-A interface tem fluxos diferentes para criar/entrar em sala e jogar. Componentes de UI genericos nao devem carregar regras especificas de uma feature.
+A interface tem fluxos diferentes para criar/entrar em sala e jogar. Componentes de UI genéricos não devem carregar regras específicas de uma feature.
 
 ## Decisao
 
-Usar Next.js com App Router e organizar o codigo por responsabilidade:
+Usar Next.js com App Router e organizar o código por responsabilidade:
 
 - `app/` define rotas e paginas.
+- `app/room/[code]` representa a rota de uma sala e delega a experiência da partida para a feature de jogo.
 - `components/ui/` contem componentes genericos.
-- `features/room/` contem criacao e entrada em salas.
-- `features/game/` contem estado, perguntas, visualizacao e log da partida.
-- `lib/`, `schemas/` e `types/` contem infraestrutura, validacao e contratos do frontend.
+- `features/room/` contém criação e entrada em salas.
+- `features/game/` contém estado, perguntas, visualização e log da partida.
+- `lib/`, `schemas/` e `types/` contêm infraestrutura, validação e contratos do frontend.
+- Componentes que usam hooks, Socket.IO ou contexto sao marcados como Client Components; o layout raiz apenas compoe os providers.
+- O estado de servidor da sala e da partida fica no cache do React Query, atualizado pelos eventos do Socket.IO, sem introduzir uma store global de dominio.
 
 ## Alternativas consideradas
 
@@ -25,5 +28,6 @@ Usar Next.js com App Router e organizar o codigo por responsabilidade:
 ## Consequencias
 
 - Codigo relacionado a uma jornada fica proximo.
-- Componentes compartilhados podem ser extraidos sem criar dependencia de dominio.
-- O estado de jogo continua dependente dos eventos do servidor, e nao de uma store global adicional no MVP.
+- Componentes compartilhados podem ser extraídos sem criar dependência de domínio.
+- O estado de jogo continua dependente dos eventos do servidor, mas o cache do React Query oferece uma fonte local única para renderização e mutações.
+- A separação entre Server Components e Client Components fica explícita nos limites de rota, providers e hooks.

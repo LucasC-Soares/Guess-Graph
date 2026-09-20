@@ -1,27 +1,27 @@
-# ADR-0010: Estado efemero de salas no Redis
+# ADR-0010: Estado efêmero de salas no Redis
 
 - Status: Aceito
 - Data: 2026-09-20
 
 ## Contexto
 
-O estado das salas, jogadores, maos e turno era mantido em um `Map` dentro do processo do backend. Isso impede compartilhar partidas entre instancias e perde todas as salas quando o processo reinicia. Alem disso, os eventos de jogo recebiam o codigo da sala repetidamente, embora a conexao ja estivesse associada a uma sala.
+O estado das salas, jogadores, mãos e turno era mantido em um `Map` dentro do processo do backend. Isso impede compartilhar partidas entre instâncias e perde todas as salas quando o processo reinicia. Além disso, os eventos de jogo recebiam o código da sala repetidamente, embora a conexão já estivesse associada a uma sala.
 
-## Decisao
+## Decisão
 
-Usar Redis como banco de dados nao persistente para o estado efemero das salas. Cada sala e serializada como JSON na chave `guess-graph:room:{code}`, acessada pelo `RedisRoomStore`. A URL pode ser configurada por `REDIS_URL` e o padrao local e `redis://localhost:6379`.
+Usar Redis como banco de dados não persistente para o estado efêmero das salas. Cada sala é serializada como JSON na chave `guess-graph:room:{code}`, acessada pelo `RedisRoomStore`. A URL pode ser configurada por `REDIS_URL` e o padrão local é `redis://localhost:6379`.
 
-Depois de criar ou entrar em uma sala, o gateway grava o codigo em `socket.data.roomCode`. Os eventos de pergunta e palpite identificam a sala pela conexao, e nao recebem o codigo nem qualquer referencia de grafo. O Redis mantém o alvo ativo de cada jogador; após um palpite correto, o servidor avança para o próximo grafo. Grafos e propriedades do oponente nunca sao enviados ao cliente.
+Depois de criar ou entrar em uma sala, o gateway grava o código em `socket.data.roomCode`. Os eventos de pergunta e palpite identificam a sala pela conexão, e não recebem o código nem qualquer referência de grafo. O Redis mantém o alvo ativo de cada jogador; após um palpite correto, o servidor avança para o próximo grafo. Grafos e propriedades do oponente nunca são enviados ao cliente.
 
 ## Alternativas consideradas
 
-- `Map` local: simples, mas nao funciona com varias instancias e perde o estado no reinicio.
-- Banco de dados persistente: desnecessario para partidas temporarias e adicionaria custo de armazenamento e limpeza.
-- Redis com dados persistentes: nao atende ao requisito de estado descartavel do MVP.
+- `Map` local: simples, mas não funciona com várias instâncias e perde o estado no reinício.
+- Banco de dados persistente: desnecessário para partidas temporárias e adicionaria custo de armazenamento e limpeza.
+- Redis com dados persistentes: não atende ao requisito de estado descartável do MVP.
 
-## Consequencias
+## Consequências
 
-- Salas podem ser lidas por varias instancias do backend e sobrevivem ao reinicio de uma instancia enquanto o Redis estiver ativo.
+- Salas podem ser lidas por várias instâncias do backend e sobrevivem ao reinício de uma instância enquanto o Redis estiver ativo.
 - O Redis passa a ser uma dependencia de infraestrutura local e de deploy.
-- O estado e serializado a cada mutacao; operacoes transacionais ou TTL podem ser adicionadas se a concorrencia e a limpeza automatica exigirem.
-- O cliente nao precisa repetir o codigo da sala em cada acao nem enviar dados privados do grafo.
+- O estado é serializado a cada mutação; operações transacionais ou TTL podem ser adicionadas se a concorrência e a limpeza automática exigirem.
+- O cliente não precisa repetir o código da sala em cada ação nem enviar dados privados do grafo.

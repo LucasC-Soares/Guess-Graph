@@ -1,17 +1,19 @@
-# ADR-0004: Comunicacao em tempo real com Socket.IO
+# ADR-0004: Comunicação em tempo real com Socket.IO
 
 - Status: Aceito
 - Data: 2026-09-19
 
 ## Contexto
 
-Criar sala, entrar em partida, responder perguntas e atualizar turnos sao eventos interativos entre dois jogadores. Polling introduziria atraso e complexidade desnecessaria.
+Criar sala, entrar em partida, responder perguntas e atualizar turnos são eventos interativos entre dois jogadores. Polling introduziria atraso e complexidade desnecessária.
 
 ## Decisao
 
-Usar Socket.IO entre frontend e backend. Cada acao tem um evento nomeado, como `room:create`, `room:join`, `game:ask-question` e `game:make-guess`. O servidor emite eventos de estado, respostas e fim de jogo.
+Usar Socket.IO entre frontend e backend. Cada ação tem um evento nomeado, como `room:create`, `room:join`, `game:ask-question` e `game:make-guess`. O servidor emite eventos de estado, respostas e fim de jogo.
 
-Os nomes dos eventos ficam centralizados em constantes em cada aplicacao e devem permanecer sincronizados.
+Os nomes dos eventos ficam centralizados em constantes em cada aplicação e devem permanecer sincronizados.
+
+No frontend, existe um único socket por sessão. Operações de criação, entrada, perguntas, palpite, revanche e encerramento usam acknowledgements do Socket.IO; mutações da partida também aplicam timeout de 8 segundos. Os hooks registram listeners para atualizações da sala e removem esses listeners no cleanup do efeito.
 
 ## Alternativas consideradas
 
@@ -20,7 +22,9 @@ Os nomes dos eventos ficam centralizados em constantes em cada aplicacao e devem
 
 ## Consequencias
 
-- O servidor pode emitir a mesma mudanca para os dois jogadores.
+- O servidor pode emitir a mesma mudança para os dois jogadores.
 - Rooms do Socket.IO mapeiam naturalmente para o codigo da sala.
 - O frontend precisa remover listeners ao desmontar hooks para evitar duplicacao.
-- O contrato de eventos passa a ser uma API publica entre as duas aplicacoes.
+- O contrato de eventos passa a ser uma API pública entre as duas aplicações.
+- O cache do React Query e atualizado diretamente pelos eventos recebidos, mantendo a tela sincronizada sem polling.
+- Falhas ou ausencia de acknowledgement rejeitam a operacao no frontend e podem ser exibidas como erro de acao.

@@ -5,21 +5,21 @@
 
 ## Contexto
 
-As perguntas dependem de propriedades estruturais dos grafos e o cliente nao pode ser considerado confiavel para calcular respostas, turnos ou pontuacao.
+As perguntas dependem de propriedades estruturais dos grafos e o cliente não pode ser considerado confiável para calcular respostas, turnos ou pontuação.
 
 ## Decisao
 
-O backend gera as maos, calcula `GraphProperties`, valida o jogador da vez, responde perguntas e atualiza pontuacao e status da partida. O cliente envia somente a intencao da acao e renderiza os eventos recebidos.
+O backend gera as mãos, calcula `GraphProperties`, valida o jogador da vez, responde perguntas e atualiza pontuação e status da partida. O cliente envia somente a intenção da ação e renderiza os eventos recebidos.
 
-As propriedades internas nao sao enviadas no payload da mao adversaria; o gateway envia apenas o DTO publico do grafo.
+As propriedades internas não são enviadas no payload da mão adversária; o gateway envia apenas o DTO público do grafo.
 
 ## Alternativas consideradas
 
-- Calcular respostas no frontend: reduziria trabalho do servidor, mas permitiria adulteracao e revelaria a implementacao da regra.
+- Calcular respostas no frontend: reduziria trabalho do servidor, mas permitiria adulteração e revelaria a implementação da regra.
 - Confiar no cliente para turno e score: reduziria validacoes, mas permitiria jogar fora de ordem ou fabricar vitorias.
 
 ## Consequencias
 
 - Regras ficam consistentes para os dois jogadores.
 - O backend precisa manter as propriedades calculadas durante a partida.
-- O frontend deve tratar eventos como a fonte de verdade do estado visivel.
+- O frontend deve tratar eventos como a fonte de verdade do estado visível.
