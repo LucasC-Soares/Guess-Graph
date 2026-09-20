@@ -98,13 +98,12 @@ Acknowledgement:
 
 ### `game:ask-question`
 
-Faz uma pergunta sobre um grafo especifico da mao do oponente. O jogador precisa ser o dono do turno.
+Faz uma pergunta sobre o alvo ativo da partida. A sala e o jogador sao obtidos do socket associado; o cliente nao informa nem referencia o grafo do oponente.
 
 Payload:
 
 ```json
 {
-  "targetRef": "referencia-opaca-do-alvo",
   "question": {
     "type": "IS_TREE"
   }
@@ -135,13 +134,12 @@ O mesmo resultado e emitido para os dois sockets em `game:question-answered`.
 
 ### `game:make-guess`
 
-Chuta qual grafo do oponente corresponde ao alvo selecionado. `targetRef` e uma referencia opaca; `guessedGraphId` e a identidade chutada, resolvida somente pelo servidor.
+Chuta a identidade do alvo ativo. O alvo e resolvido pelo servidor a partir da sala e do jogador; `guessedGraphId` e a identidade chutada.
 
 Payload:
 
 ```json
 {
-  "targetRef": "referencia-opaca-do-alvo",
   "guessedGraphId": "graph-chutado"
 }
 ```
@@ -162,24 +160,22 @@ Quando o chute encerra a partida, o servidor emite `game:over`. Caso contrario, 
 
 ### `room:opponent-joined`
 
-Emitido individualmente para cada jogador quando a sala fica completa. Cada jogador recebe somente referencias opacas para a mao do oponente; nenhum grafo, aresta ou propriedade e enviado.
+Emitido individualmente para cada jogador quando a sala fica completa. O evento informa apenas o estado da partida; nenhum grafo, referência ou propriedade e enviado.
 
 ```json
 {
   "status": "IN_PROGRESS",
-  "opponentGraphRefs": ["referencia-opaca-do-alvo"],
   "currentTurn": "player1",
   "yourRole": "player1"
 }
 ```
 
-As referencias nao revelam o ID interno, a estrutura ou as propriedades dos grafos, que permanecem privados no servidor.
+O alvo ativo e mantido exclusivamente no estado da sala no Redis.
 
 ### `game:question-answered`
 
 ```json
 {
-  "targetRef": "referencia-opaca-do-alvo",
   "question": {
     "type": "IS_CONNECTED"
   },

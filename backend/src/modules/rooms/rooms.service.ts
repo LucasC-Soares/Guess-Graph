@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { GraphWithProperties } from '../graphs/interfaces/graph.interface';
 import { PlayerState, QuestionLogEntry, Room } from './interfaces/room.interface';
 import { RedisRoomStore, RoomStore } from './redis-room-store';
-import { randomUUID } from 'node:crypto';
 
 /** Estado efêmero das salas, compartilhado entre instâncias via Redis. */
 @Injectable()
@@ -60,8 +59,8 @@ export class RoomsService {
     }
     room.players[0].hand = player1Graphs;
     room.players[1].hand = player2Graphs;
-    room.players[0].opponentGraphRefs = this.createGraphRefs(player2Graphs);
-    room.players[1].opponentGraphRefs = this.createGraphRefs(player1Graphs);
+    room.players[0].activeOpponentGraphId = player2Graphs[0]?.graph.id;
+    room.players[1].activeOpponentGraphId = player1Graphs[0]?.graph.id;
     await this.roomStore.set(room);
     return room;
   }
@@ -106,11 +105,19 @@ export class RoomsService {
     await this.roomStore.set(room);
   }
 
-  getOpponentGraph(room: Room, role: 'player1' | 'player2', targetRef: string): GraphWithProperties | undefined {
+  getActiveOpponentGraph(room: Room, role: 'player1' | 'player2'): GraphWithProperties | undefined {
     const player = room.players[role === 'player1' ? 0 : 1];
     const opponent = room.players[role === 'player1' ? 1 : 0];
-    const graphId = player?.opponentGraphRefs[targetRef];
-    return opponent?.hand.find(({ graph }) => graph.id === graphId);
+    return opponent?.hand.find(({ graph }) => graph.id === player?.activeOpponentGraphId);
+  }
+
+  advanceActiveOpponentGraph(room: Room, role: 'player1' | 'player2'): void {
+    const player = room.players[role === 'player1' ? 0 : 1];
+    const opponent = room.players[role === 'player1' ? 1 : 0];
+    if (!player || !opponent) return;
+    player.activeOpponentGraphId = opponent.hand
+      .map(({ graph }) => graph.id)
+      .find((graphId) => !player.guessedGraphIds.includes(graphId));
   }
 
   getPlayerRole(room: Room, socketId: string): 'player1' | 'player2' | undefined {
@@ -125,13 +132,9 @@ export class RoomsService {
       username: username.trim(),
       socketId,
       hand: [],
-      opponentGraphRefs: {},
       score: 0,
       guessedGraphIds: [],
     };
   }
 
-  private createGraphRefs(graphs: GraphWithProperties[]): Record<string, string> {
-    return Object.fromEntries(graphs.map(({ graph }) => [randomUUID(), graph.id]));
-  }
 }

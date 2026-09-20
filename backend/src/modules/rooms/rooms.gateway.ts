@@ -67,7 +67,6 @@ export class RoomsGateway implements OnGatewayDisconnect {
       if (!player) continue;
       this.server.to(player.socketId).emit(EVENTS.OPPONENT_JOINED, {
         status: updatedRoom.status,
-        opponentGraphRefs: Object.keys(player.opponentGraphRefs),
         currentTurn: updatedRoom.currentTurn,
         yourRole: index === 0 ? 'player1' : 'player2',
       });
@@ -77,14 +76,13 @@ export class RoomsGateway implements OnGatewayDisconnect {
 
   @SubscribeMessage(EVENTS.ASK_QUESTION)
   async handleAskQuestion(
-    @MessageBody() data: { targetRef: string; question: Question },
+    @MessageBody() data: { question: Question },
     @ConnectedSocket() client: Socket,
   ) {
     const room = await this.roomsService.getRoomForSocket(client.id, client.data.roomCode);
     const role = this.roomsService.getPlayerRole(room, client.id);
     if (!role || room.currentTurn !== role) throw new Error('Não é a vez deste jogador');
-    const opponent = room.players[role === 'player1' ? 1 : 0];
-    const target = this.roomsService.getOpponentGraph(room, role, data.targetRef);
+    const target = this.roomsService.getActiveOpponentGraph(room, role);
     if (!target) throw new Error('Grafo não encontrado');
     const answer = answerQuestion(target.properties, data.question);
     const updatedRoom = await this.roomsService.recordQuestion(room.code, {
@@ -93,7 +91,6 @@ export class RoomsGateway implements OnGatewayDisconnect {
       answer,
     });
     this.server.to(room.code).emit(EVENTS.QUESTION_ANSWERED, {
-      targetRef: data.targetRef,
       question: data.question,
       answer,
       currentTurn: updatedRoom.currentTurn,
@@ -111,7 +108,7 @@ export class RoomsGateway implements OnGatewayDisconnect {
     if (!role || room.currentTurn !== role) throw new Error('Não é a vez deste jogador');
     const player = room.players[role === 'player1' ? 0 : 1];
     const opponent = room.players[role === 'player1' ? 1 : 0];
-    const target = this.roomsService.getOpponentGraph(room, role, data.targetRef);
+    const target = this.roomsService.getActiveOpponentGraph(room, role);
     if (!player || !opponent || !target) {
       throw new Error('Grafo não encontrado');
     }
@@ -119,6 +116,7 @@ export class RoomsGateway implements OnGatewayDisconnect {
     if (correct && !player.guessedGraphIds.includes(target.graph.id)) {
       player.guessedGraphIds.push(target.graph.id);
       player.score += 1;
+      this.roomsService.advanceActiveOpponentGraph(room, role);
     }
     const finished = player.score >= opponent.hand.length;
     if (finished) {

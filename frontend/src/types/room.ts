@@ -12,7 +12,6 @@ export interface QuestionLogEntryDTO {
  */
 export interface RoomStateDTO {
   status: RoomStatus;
-  opponentGraphRefs: string[];
   currentTurn: 'player1' | 'player2';
   questionLog: QuestionLogEntryDTO[];
   yourRole: 'player1' | 'player2';

@@ -65,7 +65,6 @@ describe('RoomsGateway', () => {
     const firstPayload = emit.mock.calls[0][1];
     expect(firstPayload).not.toHaveProperty('code');
     expect(firstPayload).not.toHaveProperty('opponentHand');
-    expect(firstPayload.opponentGraphRefs).toHaveLength(1);
     expect(firstPayload).not.toHaveProperty('graph');
     expect(firstPayload).not.toHaveProperty('edges');
   });
@@ -77,16 +76,14 @@ describe('RoomsGateway', () => {
     await gateway.handleJoinRoom({ code, username: 'Bob' }, guest);
     emit.mockClear();
     const room = await roomsService.getRoom(code);
-    const targetRef = Object.keys(room.players[0]!.opponentGraphRefs)[0];
-
     const result = await gateway.handleAskQuestion(
-      { targetRef, question: { type: QuestionType.IS_TREE } },
+      { question: { type: QuestionType.IS_TREE } },
       host,
     );
 
     expect(result).toEqual({ answer: true, currentTurn: 'player2' });
     expect(emit).toHaveBeenCalledWith('game:question-answered', expect.objectContaining({
-      targetRef,
+      question: { type: QuestionType.IS_TREE },
       answer: true,
       currentTurn: 'player2',
     }));
