@@ -1,4 +1,7 @@
 import type { Metadata } from 'next';
+import '@/styles/globals.css';
+import { I18nProvider } from '@/lib/i18n-context';
+import { QueryProvider } from '@/lib/query-provider';
 
 export const metadata: Metadata = {
   title: 'Guess Graph',
@@ -8,7 +11,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body><QueryProvider><I18nProvider>{children}</I18nProvider></QueryProvider></body>
     </html>
   );
 }
