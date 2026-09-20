@@ -7,7 +7,7 @@
 
 Uma sala representa uma partida por vez. Depois de `FINISHED`, os jogadores precisam poder encerrar a sala ou propor uma revanche sem criar outro código e sem reiniciar a partida unilateralmente.
 
-## Decisao
+## Decisão
 
 Adicionar `room:close` para remover a sala do Redis e emitir `room:closed` aos participantes.
 
@@ -19,7 +19,7 @@ Adicionar `game:rematch` sem payload. Cada jogador registra seu voto no estado R
 - Criar uma nova sala para a revanche: exigiria compartilhar outro código e perderia a continuidade da sessão.
 - Manter a sala finalizada sem ações: impediria uma revanche conveniente entre os mesmos jogadores.
 
-## Consequencias
+## Consequências
 
 - A sala continua sendo uma unidade de sessão, mas pode conter partidas sequenciais mediante consenso.
 - O estado da revanche é compartilhado no Redis, funcionando entre instâncias do backend.

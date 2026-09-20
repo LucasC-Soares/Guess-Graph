@@ -1,35 +1,32 @@
 # API do Guess Graph
 
-## Visao geral
+## Visão geral
 
-O backend expoe duas superficies:
+O backend expõe:
 
-- **HTTP**: documentacao OpenAPI em `/docs-json` e referencia visual Scalar em `/docs`.
 - **Socket.IO**: protocolo usado pelo jogo para criar salas, entrar em partidas, fazer perguntas e chutar grafos.
 
-A API de jogo e orientada a eventos. O cliente envia uma acao e o servidor responde pelo acknowledgement do evento e/ou por um evento emitido para os participantes da sala.
+A API de jogo é orientada a eventos. O cliente envia uma ação e o servidor responde pelo acknowledgement do evento e/ou por um evento emitido para os participantes da sala.
 
 ## Executar localmente
 
-No diretorio `backend/`:
+No diretório `backend/`:
 
 ```bash
 npm install
 npm run start:dev
 ```
 
-O backend precisa de um Redis disponivel em `REDIS_URL` (por padrao,
+O backend precisa de um Redis disponível em `REDIS_URL` (por padrão,
 `redis://localhost:6379`).
 
 Com o backend em `http://localhost:3001`:
 
-- Referencia: http://localhost:3001/docs
-- Especificacao OpenAPI: http://localhost:3001/docs-json
 - Socket.IO: `http://localhost:3001`
 
 A porta pode ser alterada com `PORT`. A origem permitida pode ser alterada com `FRONTEND_URL`.
 
-## Conexao Socket.IO
+## Conexão Socket.IO
 
 ```ts
 import { io } from 'socket.io-client';
@@ -41,7 +38,7 @@ const socket = io('http://localhost:3001', {
 socket.connect();
 ```
 
-O cliente deve manter uma instancia de socket por sessao. Depois de entrar ou criar uma sala, registre os listeners dos eventos de servidor e remova-os ao desmontar a tela.
+O cliente deve manter uma instância de socket por sessão. Depois de entrar ou criar uma sala, registre os listeners dos eventos de servidor e remova-os ao desmontar a tela.
 
 ## Eventos enviados pelo cliente
 
@@ -76,7 +73,7 @@ socket.emit('room:create', { username: 'Alice' }, (response) => {
 
 ### `room:join`
 
-Entra em uma sala que ainda aguarda o segundo jogador. Quando a entrada e concluida, o servidor gera as duas maos e emite `room:opponent-joined` para os dois jogadores.
+Entra em uma sala que ainda aguarda o segundo jogador. Quando a entrada é concluída, o servidor gera as duas mãos e emite `room:opponent-joined` para os dois jogadores.
 
 Payload:
 
@@ -98,7 +95,7 @@ Acknowledgement:
 
 ### `game:ask-question`
 
-Faz uma pergunta sobre o grafo secreto do oponente. A sala e o jogador sao obtidos do socket associado; o cliente nao informa nem referencia o grafo do oponente.
+Faz uma pergunta sobre o grafo secreto do oponente. A sala e o jogador são obtidos do socket associado; o cliente não informa nem referencia o grafo do oponente.
 
 Payload:
 
@@ -134,13 +131,13 @@ Acknowledgement:
 }
 ```
 
-`eliminatedGraphIds` lista os grafos cuja propriedade nao correspondeu a resposta.
+`eliminatedGraphIds` lista os grafos cuja propriedade não correspondeu à resposta.
 `remainingGraphIds` lista os candidatos ainda possiveis. O mesmo resultado e
 emitido para os dois sockets em `game:question-answered`.
 
 ### `game:make-guess`
 
-Chuta a identidade do alvo ativo. O alvo e resolvido pelo servidor a partir da sala e do jogador; `guessedGraphId` e a identidade chutada.
+Chuta a identidade do alvo ativo. O alvo é resolvido pelo servidor a partir da sala e do jogador; `guessedGraphId` é a identidade chutada.
 
 Payload:
 
@@ -177,7 +174,7 @@ Enquanto aguarda o outro jogador, o acknowledgement é:
 }
 ```
 
-Quando os dois concordam, o servidor gera novas mãos, zera placar e histórico,
+Quando os dois concordam, o servidor gera novas mãos, zera o placar e o histórico,
 restaura `IN_PROGRESS` e emite `room:opponent-joined` novamente.
 
 ### `room:close`
@@ -189,7 +186,7 @@ jogador conectado à sala.
 
 ### `room:opponent-joined`
 
-Emitido individualmente para cada jogador quando a sala fica completa. O evento informa apenas o estado da partida; nenhum grafo, referência ou propriedade e enviado.
+Emitido individualmente para cada jogador quando a sala fica completa. O evento informa apenas o estado da partida; nenhum grafo, referência ou propriedade é enviado.
 
 ```json
 {
@@ -199,7 +196,7 @@ Emitido individualmente para cada jogador quando a sala fica completa. O evento 
 }
 ```
 
-O grafo secreto e o conjunto de candidatos restantes sao mantidos exclusivamente
+O grafo secreto e o conjunto de candidatos restantes são mantidos exclusivamente
 no estado da sala no Redis. O cliente recebe a estrutura publica para conseguir
 visualizar os grafos, mas nunca recebe suas propriedades calculadas.
 
@@ -222,9 +219,9 @@ candidatos ainda existam.
 
 ### `room:updated`
 
-Pode ser emitido apos um chute, com a atualizacao do turno e da pontuacao, ou quando um jogador desconecta.
+Pode ser emitido após um chute, com a atualização do turno e da pontuação, ou quando um jogador desconecta.
 
-Apos chute:
+Após chute:
 
 ```json
 {
@@ -233,7 +230,7 @@ Apos chute:
 }
 ```
 
-Apos desconexao:
+Após desconexão:
 
 ```json
 {
@@ -259,12 +256,12 @@ Emitido para os jogadores quando a sala é encerrada e removida do Redis.
 
 | Tipo | Parametros | Significado |
 | --- | --- | --- |
-| `IS_CONNECTED` | nenhum | O grafo e conexo? |
-| `IS_BIPARTITE` | nenhum | O grafo e bipartido? |
+| `IS_CONNECTED` | nenhum | O grafo é conexo? |
+| `IS_BIPARTITE` | nenhum | O grafo é bipartido? |
 | `HAS_CYCLE` | nenhum | O grafo possui ciclo? |
-| `IS_TREE` | nenhum | O grafo e uma arvore? |
+| `IS_TREE` | nenhum | O grafo é uma árvore? |
 | `HAS_BRIDGE` | nenhum | O grafo possui ponte? |
-| `MAX_DEGREE_GREATER_THAN` | `params.threshold` | O grau maximo e maior que o limite? |
+| `MAX_DEGREE_GREATER_THAN` | `params.threshold` | O grau máximo é maior que o limite? |
 
 ## Modelo de grafo publico
 
@@ -276,17 +273,17 @@ interface Graph {
 }
 ```
 
-Vertices sao inteiros de `0` a `vertexCount - 1`. As arestas sao nao direcionadas e aparecem como pares de vertices.
+Vértices são inteiros de `0` a `vertexCount - 1`. As arestas são não direcionadas e aparecem como pares de vértices.
 
 ## Regras de turno
 
-1. A sala e criada com status `WAITING_FOR_PLAYER`.
+1. A sala é criada com status `WAITING_FOR_PLAYER`.
 2. O segundo jogador muda o status para `IN_PROGRESS`.
 3. A partida inicia com `currentTurn: "player1"`.
-4. Perguntas validas registram uma entrada no log e alternam o turno.
-5. Chutes validos alternam o turno quando a partida nao termina.
-6. Um jogador que nao possui o turno recebe erro e a acao nao altera o estado.
-7. Uma sala possui uma partida ativa por vez; a revanche reinicia a mesma sala somente com concordancia dos dois jogadores.
+4. Perguntas válidas registram uma entrada no log e alternam o turno.
+5. Chutes válidos alternam o turno quando a partida não termina.
+6. Um jogador que não possui o turno recebe erro e a ação não altera o estado.
+7. Uma sala possui uma partida ativa por vez; a revanche reinicia a mesma sala somente com concordância dos dois jogadores.
 
 ## Erros
 
@@ -298,8 +295,4 @@ O handler NestJS pode rejeitar um evento com mensagens como:
 - `Grafo não encontrado`
 - `Nome e socket são obrigatórios`
 
-O cliente deve tratar a falha do acknowledgement ou do mecanismo de erro do Socket.IO sem assumir que a acao foi aplicada.
-
-## Observacao sobre OpenAPI
-
-OpenAPI descreve endpoints HTTP. Como o jogo usa Socket.IO, os eventos acima nao sao inferidos automaticamente pelo Swagger. Este arquivo e a referencia normativa do protocolo de eventos; `/docs` documenta a superficie HTTP e serve como ponto de entrada visual da API.
+O cliente deve tratar a falha do acknowledgement ou do mecanismo de erro do Socket.IO sem assumir que a ação foi aplicada.

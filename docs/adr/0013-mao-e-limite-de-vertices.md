@@ -1,32 +1,34 @@
-# ADR-0013: Tamanho da mao e limite de vertices
+# ADR-0013: Tamanho da mão e limite de vértices
 
-- Status: Aceito
+- Status: Substituído por [ADR-0014](0014-reducao-do-limite-de-vertices.md)
 - Data: 2026-09-20
 
 ## Contexto
 
-Cada jogador precisa receber uma mao suficientemente grande para tornar a deducao interessante. Ao mesmo tempo, grafos muito grandes prejudicam a leitura e a interacao na visualizacao do frontend.
+Cada jogador precisa receber uma mão suficientemente grande para tornar a dedução interessante. Ao mesmo tempo, grafos muito grandes prejudicam a leitura e a interação na visualização do frontend.
 
 ## Decisao
 
-Cada mao tera exatamente 12 grafos. A quantidade de vertices de cada grafo sera escolhida aleatoriamente entre 3 e 20, inclusive:
+Cada mão terá exatamente 12 grafos. A quantidade de vértices de cada grafo será escolhida aleatoriamente entre 3 e 20, inclusive:
 
 - `HAND_SIZE = 12`;
 - `MIN_HAND_VERTEX_COUNT = 3`;
 - `MAX_HAND_VERTEX_COUNT = 20`.
 
-O `GraphGeneratorService.generateHand()` concentra essa regra e e usado tanto no inicio da partida quanto em uma revanche.
+O `GraphGeneratorService.generateHand()` concentra essa regra e é usado tanto no início da partida quanto em uma revanche.
 
 ## Alternativas consideradas
 
-- Tres grafos com cinco vertices: pouca variedade e uma partida curta demais.
-- Quantidade fixa de vertices: simplifica a visualizacao, mas reduz a diversidade estrutural.
-- Mais de 20 vertices: aumenta o custo visual e dificulta a inspecao manual das arestas.
-- Maos com tamanho variavel: torna a comparacao entre jogadores e o balanceamento da partida menos previsiveis.
+- Três grafos com cinco vértices: pouca variedade e uma partida curta demais.
+- Quantidade fixa de vértices: simplifica a visualização, mas reduz a diversidade estrutural.
+- Mais de 20 vértices: aumenta o custo visual e dificulta a inspeção manual das arestas.
+- Mãos com tamanho variável: torna a comparação entre jogadores e o balanceamento da partida menos previsíveis.
 
-## Consequencias
+## Consequências
 
-- As partidas tem 12 candidatos por jogador e mais espaco para perguntas.
-- A variacao de 3 a 20 vertices produz grafos de escalas diferentes.
-- O limite superior mantem a visualizacao dentro de uma complexidade aceitavel para o frontend.
-- O gerador usa aleatoriedade; testes deterministas devem usar grafos construidos explicitamente.
+- As partidas têm 12 candidatos por jogador e mais espaço para perguntas.
+- A variação de 3 a 20 vértices produz grafos de escalas diferentes.
+- O limite superior mantém a visualização dentro de uma complexidade aceitável para o frontend.
+- O gerador usa aleatoriedade; testes deterministas devem usar grafos construídos explicitamente.
+
+Esta decisão foi substituída pela ADR-0014, que reduziu o limite superior para 10 vértices.

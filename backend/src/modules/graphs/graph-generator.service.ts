@@ -11,7 +11,7 @@ import { Graph } from './interfaces/graph.interface';
 export class GraphGeneratorService {
   static readonly HAND_SIZE = 12;
   static readonly MIN_HAND_VERTEX_COUNT = 3;
-  static readonly MAX_HAND_VERTEX_COUNT = 20;
+  static readonly MAX_HAND_VERTEX_COUNT = 10;
 
   generateHand(): Graph[] {
     return Array.from({ length: GraphGeneratorService.HAND_SIZE }, () => {
