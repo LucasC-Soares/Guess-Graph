@@ -104,7 +104,7 @@ Payload:
 
 ```json
 {
-  "graphId": "0f0f6f0a-3a6c-4f9f-9f56-2e7d2f0c9d5c",
+  "targetRef": "referencia-opaca-do-alvo",
   "question": {
     "type": "IS_TREE"
   }
@@ -135,13 +135,13 @@ O mesmo resultado e emitido para os dois sockets em `game:question-answered`.
 
 ### `game:make-guess`
 
-Chuta qual grafo do oponente corresponde ao grafo selecionado. `graphId` e o alvo que esta sendo identificado; `guessedGraphId` e a identidade chutada.
+Chuta qual grafo do oponente corresponde ao alvo selecionado. `targetRef` e uma referencia opaca; `guessedGraphId` e a identidade chutada, resolvida somente pelo servidor.
 
 Payload:
 
 ```json
 {
-  "graphId": "graph-alvo",
+  "targetRef": "referencia-opaca-do-alvo",
   "guessedGraphId": "graph-chutado"
 }
 ```
@@ -162,30 +162,24 @@ Quando o chute encerra a partida, o servidor emite `game:over`. Caso contrario, 
 
 ### `room:opponent-joined`
 
-Emitido individualmente para cada jogador quando a sala fica completa. Cada jogador recebe somente a mao do oponente.
+Emitido individualmente para cada jogador quando a sala fica completa. Cada jogador recebe somente referencias opacas para a mao do oponente; nenhum grafo, aresta ou propriedade e enviado.
 
 ```json
 {
   "status": "IN_PROGRESS",
-  "opponentHand": [
-    {
-      "id": "graph-1",
-      "vertexCount": 5,
-      "edges": [[0, 1], [1, 2]]
-    }
-  ],
+  "opponentGraphRefs": ["referencia-opaca-do-alvo"],
   "currentTurn": "player1",
   "yourRole": "player1"
 }
 ```
 
-`opponentHand` nao contem `properties`, pois essas propriedades sao privadas do servidor.
+As referencias nao revelam o ID interno, a estrutura ou as propriedades dos grafos, que permanecem privados no servidor.
 
 ### `game:question-answered`
 
 ```json
 {
-  "graphId": "graph-1",
+  "targetRef": "referencia-opaca-do-alvo",
   "question": {
     "type": "IS_CONNECTED"
   },

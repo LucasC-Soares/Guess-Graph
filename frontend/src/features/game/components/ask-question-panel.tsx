@@ -5,7 +5,7 @@ import { askQuestion } from '../api/game-socket-api';
 
 interface AskQuestionPanelProps {
   roomCode: string;
-  targetGraphId: string;
+  targetRef: string;
   isYourTurn: boolean;
 }
 
@@ -14,6 +14,6 @@ interface AskQuestionPanelProps {
  * desabilitados se !isYourTurn. MAX_DEGREE_GREATER_THAN precisa de um
  * input numérico extra antes de habilitar o botão.
  */
-export function AskQuestionPanel({ roomCode, targetGraphId, isYourTurn }: AskQuestionPanelProps) {
+export function AskQuestionPanel({ roomCode, targetRef, isYourTurn }: AskQuestionPanelProps) {
   return <div>{/* TODO */}</div>;
 }

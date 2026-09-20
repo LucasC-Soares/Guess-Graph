@@ -11,7 +11,7 @@ O estado das salas, jogadores, maos e turno era mantido em um `Map` dentro do pr
 
 Usar Redis como banco de dados nao persistente para o estado efemero das salas. Cada sala e serializada como JSON na chave `guess-graph:room:{code}`, acessada pelo `RedisRoomStore`. A URL pode ser configurada por `REDIS_URL` e o padrao local e `redis://localhost:6379`.
 
-Depois de criar ou entrar em uma sala, o gateway grava o codigo em `socket.data.roomCode`. Os eventos de pergunta e palpite identificam a sala pela conexao, e nao recebem mais o codigo. O servidor continua sendo a autoridade: o cliente envia apenas o `graphId` selecionado, enquanto a mao e as propriedades do oponente permanecem no Redis e sao consultadas pelo backend.
+Depois de criar ou entrar em uma sala, o gateway grava o codigo em `socket.data.roomCode`. Os eventos de pergunta e palpite identificam a sala pela conexao, e nao recebem mais o codigo. O cliente recebe apenas referencias opacas (`targetRef`) para selecionar alvos; o servidor resolve essas referencias para os grafos armazenados no Redis. Grafos e propriedades do oponente nunca sao enviados ao cliente.
 
 ## Alternativas consideradas
 

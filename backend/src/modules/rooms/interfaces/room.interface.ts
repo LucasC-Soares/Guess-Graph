@@ -7,6 +7,7 @@ export interface PlayerState {
   socketId: string;
   username: string;
   hand: GraphWithProperties[]; // os grafos DESSE jogador (o oponente tenta adivinhar)
+  opponentGraphRefs: Record<string, string>;
   score: number;
   guessedGraphIds: string[];
 }

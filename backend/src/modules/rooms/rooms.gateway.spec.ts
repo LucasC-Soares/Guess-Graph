@@ -55,7 +55,7 @@ describe('RoomsGateway', () => {
     gateway.server = server as never;
   });
 
-  it('sends each player only the opponent hand when the game starts', async () => {
+  it('sends only opaque references when the game starts', async () => {
     const host = socket('socket-1');
     const guest = socket('socket-2');
     const { code } = await gateway.handleCreateRoom({ username: 'Alice' }, host);
@@ -64,8 +64,10 @@ describe('RoomsGateway', () => {
     expect(emit).toHaveBeenCalledTimes(2);
     const firstPayload = emit.mock.calls[0][1];
     expect(firstPayload).not.toHaveProperty('code');
-    expect(firstPayload.opponentHand).toHaveLength(1);
-    expect(firstPayload.opponentHand[0]).not.toHaveProperty('properties');
+    expect(firstPayload).not.toHaveProperty('opponentHand');
+    expect(firstPayload.opponentGraphRefs).toHaveLength(1);
+    expect(firstPayload).not.toHaveProperty('graph');
+    expect(firstPayload).not.toHaveProperty('edges');
   });
 
   it('answers a question using the room associated with the socket', async () => {
@@ -75,16 +77,16 @@ describe('RoomsGateway', () => {
     await gateway.handleJoinRoom({ code, username: 'Bob' }, guest);
     emit.mockClear();
     const room = await roomsService.getRoom(code);
-    const targetGraphId = room.players[1]!.hand[0].graph.id;
+    const targetRef = Object.keys(room.players[0]!.opponentGraphRefs)[0];
 
     const result = await gateway.handleAskQuestion(
-      { graphId: targetGraphId, question: { type: QuestionType.IS_TREE } },
+      { targetRef, question: { type: QuestionType.IS_TREE } },
       host,
     );
 
     expect(result).toEqual({ answer: true, currentTurn: 'player2' });
     expect(emit).toHaveBeenCalledWith('game:question-answered', expect.objectContaining({
-      graphId: targetGraphId,
+      targetRef,
       answer: true,
       currentTurn: 'player2',
     }));

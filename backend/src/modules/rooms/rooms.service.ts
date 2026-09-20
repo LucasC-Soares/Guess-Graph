@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { GraphWithProperties } from '../graphs/interfaces/graph.interface';
 import { PlayerState, QuestionLogEntry, Room } from './interfaces/room.interface';
 import { RedisRoomStore, RoomStore } from './redis-room-store';
+import { randomUUID } from 'node:crypto';
 
 /** Estado efêmero das salas, compartilhado entre instâncias via Redis. */
 @Injectable()
@@ -59,6 +60,8 @@ export class RoomsService {
     }
     room.players[0].hand = player1Graphs;
     room.players[1].hand = player2Graphs;
+    room.players[0].opponentGraphRefs = this.createGraphRefs(player2Graphs);
+    room.players[1].opponentGraphRefs = this.createGraphRefs(player1Graphs);
     await this.roomStore.set(room);
     return room;
   }
@@ -103,6 +106,13 @@ export class RoomsService {
     await this.roomStore.set(room);
   }
 
+  getOpponentGraph(room: Room, role: 'player1' | 'player2', targetRef: string): GraphWithProperties | undefined {
+    const player = room.players[role === 'player1' ? 0 : 1];
+    const opponent = room.players[role === 'player1' ? 1 : 0];
+    const graphId = player?.opponentGraphRefs[targetRef];
+    return opponent?.hand.find(({ graph }) => graph.id === graphId);
+  }
+
   getPlayerRole(room: Room, socketId: string): 'player1' | 'player2' | undefined {
     if (room.players[0]?.socketId === socketId) return 'player1';
     if (room.players[1]?.socketId === socketId) return 'player2';
@@ -111,6 +121,17 @@ export class RoomsService {
 
   private createPlayer(username: string, socketId: string): PlayerState {
     if (!username.trim() || !socketId.trim()) throw new Error('Nome e socket são obrigatórios');
-    return { username: username.trim(), socketId, hand: [], score: 0, guessedGraphIds: [] };
+    return {
+      username: username.trim(),
+      socketId,
+      hand: [],
+      opponentGraphRefs: {},
+      score: 0,
+      guessedGraphIds: [],
+    };
+  }
+
+  private createGraphRefs(graphs: GraphWithProperties[]): Record<string, string> {
+    return Object.fromEntries(graphs.map(({ graph }) => [randomUUID(), graph.id]));
   }
 }
