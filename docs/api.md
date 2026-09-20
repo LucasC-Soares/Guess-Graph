@@ -155,12 +155,13 @@ Acknowledgement:
 ```json
 {
   "correct": false,
-  "finished": false,
+  "finished": true,
   "score": 0
 }
 ```
 
-Quando o chute encerra a partida, o servidor emite `game:over`. Caso contrario, emite `room:updated` e alterna o turno.
+Todo `make-guess` válido encerra a partida. Se `correct` for `true`, vence o
+jogador que chutou; se for `false`, vence o oponente.
 
 ## Eventos emitidos pelo servidor
 
@@ -180,8 +181,10 @@ O grafo secreto e o conjunto de candidatos restantes sao mantidos exclusivamente
 no estado da sala no Redis. O cliente recebe a estrutura publica para conseguir
 visualizar os grafos, mas nunca recebe suas propriedades calculadas.
 
-Quando `remainingCount` chega a `1`, o servidor marca a sala como `FINISHED` e
-emite `game:over`.
+Uma pergunta nunca encerra a partida. A sala só termina quando
+`game:make-guess` for enviado no turno correto e `guessedGraphId` corresponder
+ao grafo que o servidor está verificando, independentemente de quantos
+candidatos ainda existam.
 
 ### `game:question-answered`
 
@@ -221,7 +224,8 @@ Apos desconexao:
 ```json
 {
   "winner": "player1",
-  "score": 3
+  "score": 0,
+  "correct": false
 }
 ```
 

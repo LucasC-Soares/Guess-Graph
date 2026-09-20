@@ -13,14 +13,14 @@ Enviar em `room:opponent-joined` a mao publica do adversario, sem `properties`. 
 
 Uma pergunta contem somente `question`. O servidor resolve a sala e o jogador pelo socket, calcula a resposta contra o grafo secreto e remove dos candidatos os grafos cuja propriedade nao corresponde a resposta. A resposta inclui `eliminatedGraphIds`, `remainingGraphIds`, `remainingCount` e `finished`.
 
-A partida termina automaticamente quando resta exatamente um candidato (`remainingCount === 1`). O servidor emite `game:over` e marca a sala como `FINISHED`.
+Uma pergunta que deixa um ou mais candidatos não encerra a partida. Todo `make-guess` válido encerra imediatamente a partida: um palpite correto dá a vitória ao jogador que chutou; um palpite incorreto dá a vitória ao oponente.
 
 ## Alternativas consideradas
 
 - Enviar somente `answer`: nao permite ao cliente atualizar quais grafos foram descartados.
 - Enviar propriedades dos grafos: facilitaria a deducao sem perguntas e revelaria informacao privada do arbitro.
 - Manter uma referencia de grafo no payload da pergunta: acopla o cliente ao alvo interno e nao e necessario, pois o socket ja identifica sala e jogador.
-- Encerrar somente depois de acertar todos os grafos: nao corresponde ao objetivo de deduzir o unico candidato restante.
+- Manter a partida após um palpite incorreto: não representa a regra do jogo, em que um chute errado concede a vitória ao oponente.
 
 ## Consequencias
 

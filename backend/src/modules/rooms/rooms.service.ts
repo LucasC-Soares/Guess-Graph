@@ -137,6 +137,13 @@ export class RoomsService {
     return opponent?.hand.find(({ graph }) => graph.id === player?.activeOpponentGraphId);
   }
 
+  getOnlyRemainingOpponentGraph(room: Room, role: 'player1' | 'player2'): GraphWithProperties | undefined {
+    const player = room.players[role === 'player1' ? 0 : 1];
+    const opponent = room.players[role === 'player1' ? 1 : 0];
+    if (!player || player.remainingOpponentGraphIds.length !== 1) return undefined;
+    return opponent?.hand.find(({ graph }) => graph.id === player.remainingOpponentGraphIds[0]);
+  }
+
   advanceActiveOpponentGraph(room: Room, role: 'player1' | 'player2'): void {
     const player = room.players[role === 'player1' ? 0 : 1];
     const opponent = room.players[role === 'player1' ? 1 : 0];

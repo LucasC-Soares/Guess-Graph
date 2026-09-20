@@ -86,13 +86,40 @@ describe('RoomsGateway', () => {
       eliminatedGraphIds: [],
       remainingGraphIds: expect.any(Array),
       remainingCount: 1,
-      finished: true,
+      finished: false,
       currentTurn: 'player2',
     }));
+    expect((await roomsService.getRoom(code)).status).toBe('IN_PROGRESS');
+    expect(emit).not.toHaveBeenCalledWith('game:over', expect.anything());
     expect(emit).toHaveBeenCalledWith('game:question-answered', expect.objectContaining({
       question: { type: QuestionType.IS_TREE },
       answer: true,
       currentTurn: 'player2',
     }));
+
+    const guessedGraphId = (await roomsService.getRoom(code)).players[0]!.hand[0].graph.id;
+    const guess = await gateway.handleMakeGuess({ guessedGraphId }, guest);
+    expect(guess).toMatchObject({ correct: true, finished: true });
+    expect((await roomsService.getRoom(code)).status).toBe('FINISHED');
+  });
+
+  it('ends the game with the opponent as winner after an incorrect guess', async () => {
+    const host = socket('socket-1');
+    const guest = socket('socket-2');
+    const { code } = await gateway.handleCreateRoom({ username: 'Alice' }, host);
+    await gateway.handleJoinRoom({ code, username: 'Bob' }, guest);
+    emit.mockClear();
+
+    const room = await roomsService.getRoom(code);
+    const actualGraphId = room.players[1]!.hand[0].graph.id;
+    const result = await gateway.handleMakeGuess({ guessedGraphId: `${actualGraphId}-wrong` }, host);
+
+    expect(result).toEqual({ correct: false, finished: true, score: 0 });
+    expect((await roomsService.getRoom(code)).status).toBe('FINISHED');
+    expect(emit).toHaveBeenCalledWith('game:over', {
+      winner: 'player2',
+      score: 0,
+      correct: false,
+    });
   });
 });

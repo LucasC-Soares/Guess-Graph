@@ -88,7 +88,6 @@ export class RoomsGateway implements OnGatewayDisconnect {
     if (!target) throw new Error('Grafo não encontrado');
     const answer = answerQuestion(target.properties, data.question);
     const filterResult = this.roomsService.filterOpponentGraphs(room, role, data.question, answer);
-    const finished = filterResult.remainingGraphIds.length === 1;
     const updatedRoom = await this.roomsService.recordQuestion(room.code, {
       askedBy: role,
       question: data.question,
@@ -102,19 +101,11 @@ export class RoomsGateway implements OnGatewayDisconnect {
       remainingCount: filterResult.remainingGraphIds.length,
       currentTurn: updatedRoom.currentTurn,
     });
-    if (finished) {
-      updatedRoom.status = 'FINISHED';
-      await this.roomsService.saveRoom(updatedRoom);
-      this.server.to(room.code).emit(EVENTS.GAME_OVER, {
-        winner: role,
-        remainingGraphIds: filterResult.remainingGraphIds,
-      });
-    }
     return {
       answer,
       ...filterResult,
       remainingCount: filterResult.remainingGraphIds.length,
-      finished,
+      finished: false,
       currentTurn: updatedRoom.currentTurn,
     };
   }
@@ -129,7 +120,9 @@ export class RoomsGateway implements OnGatewayDisconnect {
     if (!role || room.currentTurn !== role) throw new Error('Não é a vez deste jogador');
     const player = room.players[role === 'player1' ? 0 : 1];
     const opponent = room.players[role === 'player1' ? 1 : 0];
-    const target = this.roomsService.getActiveOpponentGraph(room, role);
+    const target = room.players[role === 'player1' ? 0 : 1]?.remainingOpponentGraphIds.length === 1
+      ? this.roomsService.getOnlyRemainingOpponentGraph(room, role)
+      : this.roomsService.getActiveOpponentGraph(room, role);
     if (!player || !opponent || !target) {
       throw new Error('Grafo não encontrado');
     }
@@ -139,14 +132,14 @@ export class RoomsGateway implements OnGatewayDisconnect {
       player.score += 1;
       this.roomsService.advanceActiveOpponentGraph(room, role);
     }
-    const finished = player.score >= opponent.hand.length;
-    if (finished) {
-      room.status = 'FINISHED';
-      this.server.to(room.code).emit(EVENTS.GAME_OVER, { winner: role, score: player.score });
-    } else {
-      room.currentTurn = role === 'player1' ? 'player2' : 'player1';
-      this.server.to(room.code).emit(EVENTS.ROOM_UPDATED, { currentTurn: room.currentTurn, score: player.score });
-    }
+    const finished = true;
+    const winner = correct ? role : role === 'player1' ? 'player2' : 'player1';
+    room.status = 'FINISHED';
+    this.server.to(room.code).emit(EVENTS.GAME_OVER, {
+      winner,
+      score: correct ? player.score : opponent.score,
+      correct,
+    });
     await this.roomsService.saveRoom(room);
     return { correct, finished, score: player.score };
   }
