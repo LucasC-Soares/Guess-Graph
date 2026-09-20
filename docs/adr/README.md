@@ -8,11 +8,12 @@ Este diretorio registra decisoes arquiteturais do Guess Graph. Cada ADR document
 - [ADR-0002: Backend modular com NestJS](0002-backend-modular-com-nestjs.md)
 - [ADR-0003: Frontend Next.js App Router organizado por features](0003-frontend-nextjs-app-router-features.md)
 - [ADR-0004: Comunicacao em tempo real com Socket.IO](0004-comunicacao-tempo-real-socketio.md)
-- [ADR-0005: Estado de salas em memoria no MVP](0005-estado-de-salas-em-memoria.md)
+- [ADR-0005: Estado de salas em memoria no MVP (substituido)](0005-estado-de-salas-em-memoria.md)
 - [ADR-0006: Servidor como autoridade do jogo](0006-servidor-como-autoridade-do-jogo.md)
 - [ADR-0007: Modelo e calculo de propriedades de grafos](0007-modelo-e-calculo-de-grafos.md)
 - [ADR-0008: Contratos TypeScript espelhados entre as aplicacoes](0008-contratos-typescript-espelhados.md)
 - [ADR-0009: Testes por camadas, independentes de Socket.IO real](0009-testes-por-camadas.md)
+- [ADR-0010: Estado efemero de salas no Redis](0010-estado-efemero-de-salas-no-redis.md)
 
 ## Como adicionar um ADR
 

@@ -10,7 +10,7 @@ grafos do oponente através de perguntas de sim/não.
 
 ```
 guess-graph/
-├── backend/    NestJS + WebSockets (Socket.io), estado em memória
+├── backend/    NestJS + WebSockets (Socket.io), estado efêmero no Redis
 └── frontend/   Next.js (App Router) + Bulletproof React
 ```
 
@@ -53,7 +53,7 @@ frontend/src/
    `entities/graph/model/types.ts`).
 
 4. **`modules/rooms/rooms.service.ts`**
-   Estado da sala em memória (Map). Implemente `createRoom`, `joinRoom`,
+   Estado efêmero da sala no Redis. Implemente `createRoom`, `joinRoom`,
    `assignHands`, `recordQuestion`. Teste isso separado do gateway
    (testes unitários simples, sem precisar de socket real).
 

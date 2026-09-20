@@ -18,6 +18,9 @@ npm install
 npm run start:dev
 ```
 
+O backend precisa de um Redis disponivel em `REDIS_URL` (por padrao,
+`redis://localhost:6379`).
+
 Com o backend em `http://localhost:3001`:
 
 - Referencia: http://localhost:3001/docs
@@ -101,7 +104,6 @@ Payload:
 
 ```json
 {
-  "code": "K7M2Q",
   "graphId": "0f0f6f0a-3a6c-4f9f-9f56-2e7d2f0c9d5c",
   "question": {
     "type": "IS_TREE"
@@ -139,7 +141,6 @@ Payload:
 
 ```json
 {
-  "code": "K7M2Q",
   "graphId": "graph-alvo",
   "guessedGraphId": "graph-chutado"
 }
@@ -165,7 +166,6 @@ Emitido individualmente para cada jogador quando a sala fica completa. Cada joga
 
 ```json
 {
-  "code": "K7M2Q",
   "status": "IN_PROGRESS",
   "opponentHand": [
     {

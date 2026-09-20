@@ -42,51 +42,53 @@ export class RoomsGateway implements OnGatewayDisconnect {
   ) {}
 
   @SubscribeMessage(EVENTS.CREATE_ROOM)
-  handleCreateRoom(@MessageBody() data: { username: string }, @ConnectedSocket() client: Socket) {
-    const code = this.roomsService.createRoom(data.username, client.id);
+  async handleCreateRoom(@MessageBody() data: { username: string }, @ConnectedSocket() client: Socket) {
+    const code = await this.roomsService.createRoom(data.username, client.id);
+    client.data.roomCode = code;
     void client.join(code);
     return { code, status: 'WAITING_FOR_PLAYER' };
   }
 
   @SubscribeMessage(EVENTS.JOIN_ROOM)
-  handleJoinRoom(
+  async handleJoinRoom(
     @MessageBody() data: { code: string; username: string },
     @ConnectedSocket() client: Socket,
-  ) {
-    const room = this.roomsService.joinRoom(data.code, data.username, client.id);
+  ): Promise<{ code: string; status: string }> {
+    const room = await this.roomsService.joinRoom(data.code, data.username, client.id);
+    client.data.roomCode = room.code;
     void client.join(room.code);
     const createHand = () => this.graphGenerator.generateBatch(3, 5).map((graph) => ({
       graph,
       properties: this.graphProperties.computeAll(graph),
     }));
-    this.roomsService.assignHands(room.code, createHand(), createHand());
-    for (const [index, player] of room.players.entries()) {
+    await this.roomsService.assignHands(room.code, createHand(), createHand());
+    const updatedRoom = await this.roomsService.getRoom(room.code);
+    for (const [index, player] of updatedRoom.players.entries()) {
       if (!player) continue;
-      const opponent = room.players[index === 0 ? 1 : 0];
+      const opponent = updatedRoom.players[index === 0 ? 1 : 0];
       this.server.to(player.socketId).emit(EVENTS.OPPONENT_JOINED, {
-        code: room.code,
-        status: room.status,
+        status: updatedRoom.status,
         opponentHand: opponent?.hand.map(({ graph }) => graph) ?? [],
-        currentTurn: room.currentTurn,
+        currentTurn: updatedRoom.currentTurn,
         yourRole: index === 0 ? 'player1' : 'player2',
       });
     }
-    return { code: room.code, status: room.status };
+    return { code: updatedRoom.code, status: updatedRoom.status };
   }
 
   @SubscribeMessage(EVENTS.ASK_QUESTION)
-  handleAskQuestion(
-    @MessageBody() data: { code: string; graphId: string; question: Question },
+  async handleAskQuestion(
+    @MessageBody() data: { graphId: string; question: Question },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.roomsService.getRoom(data.code);
+    const room = await this.roomsService.getRoomForSocket(client.id, client.data.roomCode);
     const role = this.roomsService.getPlayerRole(room, client.id);
     if (!role || room.currentTurn !== role) throw new Error('Não é a vez deste jogador');
     const opponent = room.players[role === 'player1' ? 1 : 0];
     const target = opponent?.hand.find(({ graph }) => graph.id === data.graphId);
     if (!target) throw new Error('Grafo não encontrado');
     const answer = answerQuestion(target.properties, data.question);
-    const updatedRoom = this.roomsService.recordQuestion(room.code, {
+    const updatedRoom = await this.roomsService.recordQuestion(room.code, {
       askedBy: role,
       question: data.question,
       answer,
@@ -101,11 +103,11 @@ export class RoomsGateway implements OnGatewayDisconnect {
   }
 
   @SubscribeMessage(EVENTS.MAKE_GUESS)
-  handleMakeGuess(
-    @MessageBody() data: { code: string; graphId: string; guessedGraphId: string },
+  async handleMakeGuess(
+    @MessageBody() data: { graphId: string; guessedGraphId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = this.roomsService.getRoom(data.code);
+    const room = await this.roomsService.getRoomForSocket(client.id, client.data.roomCode);
     const role = this.roomsService.getPlayerRole(room, client.id);
     if (!role || room.currentTurn !== role) throw new Error('Não é a vez deste jogador');
     const player = room.players[role === 'player1' ? 0 : 1];
@@ -126,11 +128,12 @@ export class RoomsGateway implements OnGatewayDisconnect {
       room.currentTurn = role === 'player1' ? 'player2' : 'player1';
       this.server.to(room.code).emit(EVENTS.ROOM_UPDATED, { currentTurn: room.currentTurn, score: player.score });
     }
+    await this.roomsService.saveRoom(room);
     return { correct, finished, score: player.score };
   }
 
-  handleDisconnect(client: Socket): void {
-    const code = this.roomsService.removePlayer(client.id);
+  async handleDisconnect(client: Socket): Promise<void> {
+    const code = await this.roomsService.removePlayer(client.id);
     if (code) this.server.to(code).emit(EVENTS.ROOM_UPDATED, { status: 'WAITING_FOR_PLAYER' });
   }
 }

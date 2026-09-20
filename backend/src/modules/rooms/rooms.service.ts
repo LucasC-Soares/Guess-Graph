@@ -1,30 +1,28 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { GraphWithProperties } from '../graphs/interfaces/graph.interface';
 import { PlayerState, QuestionLogEntry, Room } from './interfaces/room.interface';
+import { RedisRoomStore, RoomStore } from './redis-room-store';
 
-/**
- * Estado do jogo em memória — suficiente pro MVP (uma instância do servidor).
- * TODO: se precisar escalar horizontalmente no futuro, migrar esse Map pra
- * Redis (não é necessário agora, e adicionaria complexidade sem necessidade).
- */
+/** Estado efêmero das salas, compartilhado entre instâncias via Redis. */
 @Injectable()
 export class RoomsService {
-  private rooms = new Map<string, Room>();
   private readonly codeAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
+  constructor(@Inject(RedisRoomStore) private readonly roomStore: RoomStore) {}
+
   /** Gera um código curto e fácil de compartilhar (ex: 4-6 letras maiúsculas). */
-  generateRoomCode(): string {
+  async generateRoomCode(): Promise<string> {
     do {
       let code = '';
       for (let index = 0; index < 5; index += 1) {
         code += this.codeAlphabet[Math.floor(Math.random() * this.codeAlphabet.length)];
       }
-      if (!this.rooms.has(code)) return code;
+      if (!(await this.roomStore.exists(code))) return code;
     } while (true);
   }
 
-  createRoom(username: string, socketId: string): string {
-    const code = this.generateRoomCode();
+  async createRoom(username: string, socketId: string): Promise<string> {
+    const code = await this.generateRoomCode();
     const room: Room = {
       code,
       status: 'WAITING_FOR_PLAYER',
@@ -32,58 +30,77 @@ export class RoomsService {
       currentTurn: 'player1',
       questionLog: [],
     };
-    this.rooms.set(code, room);
+    await this.roomStore.set(room);
     return code;
   }
 
-  joinRoom(code: string, username: string, socketId: string): Room {
-    const room = this.getRoom(code);
+  async joinRoom(code: string, username: string, socketId: string): Promise<Room> {
+    const room = await this.getRoom(code);
     if (room.status !== 'WAITING_FOR_PLAYER' || room.players[1]) {
       throw new Error('A sala já está cheia ou em andamento');
     }
     room.players[1] = this.createPlayer(username, socketId);
     room.status = 'IN_PROGRESS';
+    await this.roomStore.set(room);
     return room;
   }
 
-  getRoom(code: string): Room {
+  async getRoom(code: string): Promise<Room> {
     const normalizedCode = code.trim().toUpperCase();
-    const room = this.rooms.get(normalizedCode);
+    const room = await this.roomStore.get(normalizedCode);
     if (!room) throw new Error('Sala não encontrada');
     return room;
   }
 
-  assignHands(code: string, player1Graphs: GraphWithProperties[], player2Graphs: GraphWithProperties[]): Room {
-    const room = this.getRoom(code);
+  async assignHands(code: string, player1Graphs: GraphWithProperties[], player2Graphs: GraphWithProperties[]): Promise<Room> {
+    const room = await this.getRoom(code);
     if (!room.players[0] || !room.players[1]) {
       throw new Error('A sala precisa de dois jogadores para receber as mãos');
     }
     room.players[0].hand = player1Graphs;
     room.players[1].hand = player2Graphs;
+    await this.roomStore.set(room);
     return room;
   }
 
-  recordQuestion(code: string, entry: QuestionLogEntry): Room {
-    const room = this.getRoom(code);
+  async recordQuestion(code: string, entry: QuestionLogEntry): Promise<Room> {
+    const room = await this.getRoom(code);
     room.questionLog.push(entry);
     room.currentTurn = room.currentTurn === 'player1' ? 'player2' : 'player1';
+    await this.roomStore.set(room);
     return room;
   }
 
-  removeRoom(code: string): void {
-    this.rooms.delete(code.trim().toUpperCase());
+  async removeRoom(code: string): Promise<void> {
+    await this.roomStore.delete(code.trim().toUpperCase());
   }
 
-  removePlayer(socketId: string): string | undefined {
-    for (const [code, room] of this.rooms) {
+  async removePlayer(socketId: string): Promise<string | undefined> {
+    for (const code of await this.roomStore.listCodes()) {
+      const room = await this.roomStore.get(code);
+      if (!room) continue;
       const playerIndex = room.players.findIndex((player) => player?.socketId === socketId);
       if (playerIndex === -1) continue;
       room.players[playerIndex] = null;
-      if (!room.players[0] && !room.players[1]) this.rooms.delete(code);
-      else room.status = 'WAITING_FOR_PLAYER';
+      if (!room.players[0] && !room.players[1]) await this.roomStore.delete(code);
+      else {
+        room.status = 'WAITING_FOR_PLAYER';
+        await this.roomStore.set(room);
+      }
       return code;
     }
     return undefined;
+  }
+
+  async getRoomForSocket(socketId: string, roomCode?: string): Promise<Room> {
+    if (!roomCode) throw new Error('Socket não está associado a uma sala');
+    const room = await this.getRoom(roomCode);
+    if (!this.getPlayerRole(room, socketId)) throw new Error('Socket não pertence à sala');
+    return room;
+  }
+
+  async saveRoom(room: Room): Promise<void> {
+    await this.roomStore.set(room);
   }
 
   getPlayerRole(room: Room, socketId: string): 'player1' | 'player2' | undefined {

@@ -13,7 +13,6 @@ export interface QuestionLogEntryDTO {
  * (OPPONENT_JOINED / ROOM_UPDATED).
  */
 export interface RoomStateDTO {
-  code: string;
   status: RoomStatus;
   opponentHand: GraphDTO[];
   currentTurn: 'player1' | 'player2';

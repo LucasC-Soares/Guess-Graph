@@ -1,6 +1,6 @@
 # ADR-0005: Estado de salas em memoria no MVP
 
-- Status: Aceito
+- Status: Substituido por ADR-0010
 - Data: 2026-09-19
 
 ## Contexto
@@ -9,7 +9,7 @@ O MVP precisa armazenar salas, jogadores, maos, turno, perguntas e pontuacao. Ai
 
 ## Decisao
 
-Manter o estado em memoria no `RoomsService`, usando `Map<string, Room>`. O codigo da sala e a chave, e o ciclo de vida inclui remocao de jogadores desconectados e limpeza da sala quando ambos saem.
+Manter o estado em memoria no `RoomsService`, usando `Map<string, Room>`. Esta decisao foi substituida pela ADR-0010.
 
 Persistencia externa e escalabilidade horizontal ficam fora do MVP.
 

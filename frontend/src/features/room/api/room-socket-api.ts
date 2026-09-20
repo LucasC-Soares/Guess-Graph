@@ -8,7 +8,7 @@ export function createRoom(username: string): Promise<{ code: string }> {
   throw new Error('não implementado');
 }
 
-// TODO: emit JOIN_ROOM { code, username }
+// TODO: emit JOIN_ROOM { code, username }; the server associates the socket with the room
 export function joinRoom(code: string, username: string): void {
   throw new Error('não implementado');
 }
