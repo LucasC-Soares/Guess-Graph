@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSocket } from '@/lib/socket-client';
 import { SOCKET_EVENTS } from '@/constants/config';
@@ -14,6 +14,7 @@ const emptyRoom = (): RoomStateDTO => ({
 });
 
 export function useRoomState(roomCode: string) {
+  const [roomClosed, setRoomClosed] = useState(false);
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: roomQueryKey(roomCode), queryFn: async () => null as RoomStateDTO | null, enabled: false });
   const gameOverQuery = useQuery<{ winner: string; correct?: boolean } | null>({ queryKey: gameOverQueryKey(roomCode), queryFn: async () => null, enabled: false });
@@ -21,29 +22,37 @@ export function useRoomState(roomCode: string) {
   useEffect(() => {
     const socket = getSocket();
     const update = (partial: Partial<RoomStateDTO>) => queryClient.setQueryData<RoomStateDTO>(roomQueryKey(roomCode), (current) => ({ ...emptyRoom(), ...current, ...partial }));
-    const onJoined = (state: RoomStateDTO) => update(state);
+    const onJoined = (state: RoomStateDTO) => {
+      setRoomClosed(false);
+      queryClient.setQueryData(gameOverQueryKey(roomCode), null);
+      update(state);
+    };
     const onUpdate = (state: Partial<RoomStateDTO>) => update(state);
     const onQuestion = (event: QuestionAnsweredDTO) => queryClient.setQueryData<RoomStateDTO>(roomQueryKey(roomCode), (current) => ({
       ...emptyRoom(), ...current, currentTurn: event.currentTurn,
-      questionLog: [...(current?.questionLog ?? []), { askedBy: current?.yourRole ?? 'player1', questionLabel: event.question.type, answer: event.answer, eliminatedGraphIds: event.eliminatedGraphIds, remainingGraphIds: event.remainingGraphIds }],
+      questionLog: [...(current?.questionLog ?? []), { askedBy: current?.yourRole ?? 'player1', questionLabel: event.question.type, questionParams: event.question.params, answer: event.answer, eliminatedGraphIds: event.eliminatedGraphIds, remainingGraphIds: event.remainingGraphIds }],
     }));
     const onOver = (event: { winner: string; correct?: boolean }) => {
       queryClient.setQueryData(gameOverQueryKey(roomCode), event);
       update({ status: 'FINISHED' });
     };
+    const onClosed = () => {
+      setRoomClosed(true);
+      queryClient.setQueryData(gameOverQueryKey(roomCode), null);
+    };
     socket.on(SOCKET_EVENTS.OPPONENT_JOINED, onJoined);
     socket.on(SOCKET_EVENTS.ROOM_UPDATED, onUpdate);
     socket.on(SOCKET_EVENTS.QUESTION_ANSWERED, onQuestion);
     socket.on(SOCKET_EVENTS.GAME_OVER, onOver);
-    socket.on(SOCKET_EVENTS.ROOM_CLOSED, onOver);
+    socket.on(SOCKET_EVENTS.ROOM_CLOSED, onClosed);
     return () => {
       socket.off(SOCKET_EVENTS.OPPONENT_JOINED, onJoined);
       socket.off(SOCKET_EVENTS.ROOM_UPDATED, onUpdate);
       socket.off(SOCKET_EVENTS.QUESTION_ANSWERED, onQuestion);
       socket.off(SOCKET_EVENTS.GAME_OVER, onOver);
-      socket.off(SOCKET_EVENTS.ROOM_CLOSED, onOver);
+      socket.off(SOCKET_EVENTS.ROOM_CLOSED, onClosed);
     };
   }, [queryClient, roomCode]);
 
-  return { roomState: query.data ?? null, gameOver: gameOverQuery.data ?? null, isLoading: query.isLoading };
+  return { roomState: query.data ?? null, gameOver: gameOverQuery.data ?? null, roomClosed, isLoading: query.isLoading };
 }

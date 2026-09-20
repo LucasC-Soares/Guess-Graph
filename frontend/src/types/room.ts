@@ -1,10 +1,11 @@
-import { GraphDTO } from './graph';
+import { GraphDTO, QuestionType } from './graph';
 
-export type RoomStatus = 'WAITING_FOR_PLAYER' | 'IN_PROGRESS' | 'FINISHED';
+export type RoomStatus = 'WAITING_FOR_PLAYER' | 'WAITING_FOR_REMATCH' | 'IN_PROGRESS' | 'FINISHED';
 
 export interface QuestionLogEntryDTO {
   askedBy: 'player1' | 'player2';
-  questionLabel: string;
+  questionLabel: QuestionType;
+  questionParams?: { threshold?: number };
   answer: boolean;
   eliminatedGraphIds: string[];
   remainingGraphIds: string[];
@@ -29,4 +30,5 @@ export interface RoomStateDTO {
   currentTurn: 'player1' | 'player2';
   questionLog: QuestionLogEntryDTO[];
   yourRole: 'player1' | 'player2';
+  rematchRequestedBy?: 'player1' | 'player2';
 }
