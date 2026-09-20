@@ -11,7 +11,7 @@ function HomeContent() {
     <main className="site-shell">
       <header className="topbar"><a className="wordmark" href="/">{t('brand')}</a><LanguageSwitcher locale={locale} onChange={setLocale} /></header>
       <div className="page-frame"><div className="landing-grid">
-        <section><span className="hero-kicker">A two-player graph duel</span><h1 className="hero-title">{t('brand')}</h1><p className="hero-copy">{t('tagline')}</p></section>
+        <section><span className="hero-kicker">{t('subtitle')}</span><h1 className="hero-title">{t('brand')}</h1><p className="hero-copy">{t('tagline')}</p></section>
         <section><CreateRoomForm /><JoinRoomForm /></section>
       </div></div>
     </main>

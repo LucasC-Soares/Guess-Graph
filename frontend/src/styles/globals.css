@@ -46,7 +46,7 @@ button { cursor: pointer; }
 .button-row { display: flex; flex-wrap: wrap; gap: 10px; }
 .error-banner { background: #fae2dc; border-left: 4px solid var(--coral); color: var(--coral-dark); font: .85rem/1.4 system-ui, sans-serif; padding: 12px 14px; }
 .room-layout { display: grid; gap: 26px; grid-template-columns: minmax(0, 1fr) 320px; }
-.room-header { align-items: end; display: flex; justify-content: space-between; margin-bottom: 32px; }
+.room-header { align-items: flex-end; display: flex; justify-content: space-between; margin-bottom: 32px; }
 .room-title { font-size: clamp(2.5rem, 5vw, 5rem); line-height: .9; margin: 10px 0 0; }
 .room-code { color: var(--teal); font: 700 1rem/1 system-ui, sans-serif; letter-spacing: .22em; }
 .status-strip { align-items: center; background: var(--ink); color: #fff; display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; padding: 14px 18px; }

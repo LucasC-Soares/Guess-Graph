@@ -3,6 +3,7 @@ export type Locale = 'pt' | 'en';
 const messages = {
   pt: {
     brand: 'Guess Graph',
+    subtitle: 'Um duelo de grafos entre dois jogadores',
     tagline: 'Descubra o grafo secreto fazendo as perguntas certas.',
     createRoom: 'Criar sala',
     joinRoom: 'Entrar em uma sala',
@@ -40,6 +41,7 @@ const messages = {
   },
   en: {
     brand: 'Guess Graph',
+    subtitle: 'A two-player graph duel',
     tagline: 'Discover the secret graph by asking the right questions.',
     createRoom: 'Create room',
     joinRoom: 'Join a room',
