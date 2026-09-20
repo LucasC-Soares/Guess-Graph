@@ -31,8 +31,8 @@ export function GameBoard({ roomCode }: GameBoardProps) {
   const [selectedId, setSelectedId] = useState('');
   const [guessNumber, setGuessNumber] = useState('');
   if (roomClosed) return <main className="site-shell"><div className="waiting-card panel"><p>{t('roomClosedMessage')}</p></div></main>;
-  if (!roomState) return <main className="site-shell"><div className="waiting-card panel"><p>{t('waiting')}</p></div></main>;
-  if (roomState.status === 'WAITING_FOR_PLAYER') return <main className="site-shell"><div className="waiting-card panel"><p>{t('waiting')}</p><div className="waiting-card__code">{roomCode}</div><p className="muted">{t('shareCode')}</p></div></main>;
+  if (!roomState) return <main className="site-shell"><div className="waiting-card panel"><p>{t('waiting')}</p><p>{t('roomCodeLabel')}</p><div className="waiting-card__code">{roomCode}</div><p className="muted">{t('shareCode')}</p></div></main>;
+  if (roomState.status === 'WAITING_FOR_PLAYER') return <main className="site-shell"><div className="waiting-card panel"><p>{t('waiting')}</p><p>{t('roomCodeLabel')}</p><div className="waiting-card__code">{roomCode}</div><p className="muted">{t('shareCode')}</p></div></main>;
   const isYourTurn = roomState.currentTurn === roomState.yourRole;
   const selectedGraph = roomState.opponentHand.find((graph) => graph.id === selectedId);
   const graphNumbers = new Map(roomState.opponentHand.map((graph, index) => [graph.id, index + 1]));
