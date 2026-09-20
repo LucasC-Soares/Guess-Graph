@@ -12,6 +12,7 @@ export interface QuestionLogEntryDTO {
 }
 
 export interface QuestionAnsweredDTO {
+  askedBy: 'player1' | 'player2';
   question: import('./graph').Question;
   answer: boolean;
   eliminatedGraphIds: string[];

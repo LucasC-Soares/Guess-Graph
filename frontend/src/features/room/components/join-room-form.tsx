@@ -22,10 +22,10 @@ export function JoinRoomForm() {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<JoinRoomFormValues>({
     resolver: zodResolver(joinRoomSchema),
   });
-  const onSubmit = ({ code, username }: JoinRoomFormValues) => {
+  const onSubmit = async ({ code, username }: JoinRoomFormValues) => {
     try {
-      joinRoom(code, username);
-      router.push(`/room/${code.toUpperCase()}`);
+      const response = await joinRoom(code, username);
+      router.push(`/room/${response.code.toUpperCase()}`);
     } catch {
       setError(t('error'));
     }

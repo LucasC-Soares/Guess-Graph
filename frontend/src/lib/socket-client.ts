@@ -10,7 +10,10 @@ let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io(WS_URL, { autoConnect: false });
+    socket = io(WS_URL, { autoConnect: true });
+  }
+  if (!socket.connected) {
+    socket.connect();
   }
   return socket;
 }

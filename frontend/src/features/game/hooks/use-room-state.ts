@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSocket } from '@/lib/socket-client';
 import { SOCKET_EVENTS } from '@/constants/config';
 import { QuestionAnsweredDTO, RoomStateDTO } from '@/types/room';
+import { consumePendingRoomState } from '@/features/room/api/room-socket-api';
 
 export const roomQueryKey = (roomCode: string) => ['room', roomCode] as const;
 export const gameOverQueryKey = (roomCode: string) => ['room', roomCode, 'game-over'] as const;
@@ -21,7 +22,14 @@ export function useRoomState(roomCode: string) {
 
   useEffect(() => {
     const socket = getSocket();
+    if (!socket.connected) socket.connect();
     const update = (partial: Partial<RoomStateDTO>) => queryClient.setQueryData<RoomStateDTO>(roomQueryKey(roomCode), (current) => ({ ...emptyRoom(), ...current, ...partial }));
+    const pendingState = consumePendingRoomState();
+    if (pendingState) {
+      setRoomClosed(false);
+      queryClient.setQueryData(gameOverQueryKey(roomCode), null);
+      update(pendingState);
+    }
     const onJoined = (state: RoomStateDTO) => {
       setRoomClosed(false);
       queryClient.setQueryData(gameOverQueryKey(roomCode), null);
@@ -30,7 +38,7 @@ export function useRoomState(roomCode: string) {
     const onUpdate = (state: Partial<RoomStateDTO>) => update(state);
     const onQuestion = (event: QuestionAnsweredDTO) => queryClient.setQueryData<RoomStateDTO>(roomQueryKey(roomCode), (current) => ({
       ...emptyRoom(), ...current, currentTurn: event.currentTurn,
-      questionLog: [...(current?.questionLog ?? []), { askedBy: current?.yourRole ?? 'player1', questionLabel: event.question.type, questionParams: event.question.params, answer: event.answer, eliminatedGraphIds: event.eliminatedGraphIds, remainingGraphIds: event.remainingGraphIds }],
+      questionLog: [...(current?.questionLog ?? []), { askedBy: event.askedBy, questionLabel: event.question.type, questionParams: event.question.params, answer: event.answer, eliminatedGraphIds: event.eliminatedGraphIds, remainingGraphIds: event.remainingGraphIds }],
     }));
     const onOver = (event: { winner: string; correct?: boolean }) => {
       queryClient.setQueryData(gameOverQueryKey(roomCode), event);

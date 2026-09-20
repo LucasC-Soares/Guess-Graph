@@ -5,16 +5,21 @@ import { useI18n } from '@/lib/i18n-context';
 interface QuestionLogProps {
   entries: QuestionLogEntryDTO[];
   graphNumbers: ReadonlyMap<string, number>;
+  yourRole: 'player1' | 'player2';
 }
 
-// TODO: lista simples do histórico de perguntas/respostas (mais recente no topo).
-export function QuestionLog({ entries, graphNumbers }: QuestionLogProps) {
+export function QuestionLog({ entries, graphNumbers, yourRole }: QuestionLogProps) {
   const { locale, t } = useI18n();
-  return <div className="question-list">{entries.slice().reverse().map((entry, index) => (
-    <div className="log-entry" key={`${entry.questionLabel}-${index}`}>
-      <div>{translateQuestion(locale, entry.questionLabel, entry.questionParams?.threshold)}</div>
-      <div className="log-entry__answer">{entry.answer ? t('yes') : t('no')}</div>
-      <small className="muted">{t('eliminatedGraphIds')}: {entry.eliminatedGraphIds.map((id) => `#${graphNumbers.get(id) ?? '?'}`).join(', ') || '—'} · {entry.remainingGraphIds.length} {t('remainingGraphs')}</small>
-    </div>
-  ))}</div>;
+  return <div className="question-list">{entries.map((entry, index) => {
+    const questionNumber = index + 1;
+    const askedBy = entry.askedBy === yourRole ? t('you') : t('opponent');
+    return (
+      <div className="log-entry" key={`${entry.questionLabel}-${questionNumber}`}>
+        <div><strong>{t('questionNumber').replace('{number}', String(questionNumber))}</strong> · {askedBy}</div>
+        <div>{translateQuestion(locale, entry.questionLabel, entry.questionParams?.threshold)}</div>
+        <div className="log-entry__answer">{entry.answer ? t('yes') : t('no')}</div>
+        <small className="muted">{t('eliminatedGraphIds')}: {entry.eliminatedGraphIds.map((id) => `#${graphNumbers.get(id) ?? '?'}`).join(', ') || '—'} · {entry.remainingGraphIds.length} {t('remainingGraphs')}</small>
+      </div>
+    );
+  })}</div>;
 }
