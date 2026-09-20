@@ -153,7 +153,12 @@ export class RoomsService {
   }
 
   private createPlayer(username: string, socketId: string): PlayerState {
-    if (!username.trim() || !socketId.trim()) throw new Error('Nome e socket são obrigatórios');
+    if (typeof username !== 'string' || !username.trim()) {
+      throw new Error('Nome de usuário é obrigatório');
+    }
+    if (typeof socketId !== 'string' || !socketId.trim()) {
+      throw new Error('Socket é obrigatório');
+    }
     return {
       username: username.trim(),
       socketId,

@@ -28,6 +28,11 @@ describe('RoomsService', () => {
     expect(room.players[1]).toBeNull();
   });
 
+  it('rejects a missing username without throwing a TypeError', async () => {
+    await expect(service.createRoom(undefined as unknown as string, 'socket-1'))
+      .rejects.toThrow('Nome de usuário é obrigatório');
+  });
+
   it('joins a room once and rejects a third player', async () => {
     const code = await service.createRoom('Alice', 'socket-1');
     await service.joinRoom(code, 'Bob', 'socket-2');
