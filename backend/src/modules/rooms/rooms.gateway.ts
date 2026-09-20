@@ -65,8 +65,10 @@ export class RoomsGateway implements OnGatewayDisconnect {
     const updatedRoom = await this.roomsService.getRoom(room.code);
     for (const [index, player] of updatedRoom.players.entries()) {
       if (!player) continue;
+      const opponent = updatedRoom.players[index === 0 ? 1 : 0];
       this.server.to(player.socketId).emit(EVENTS.OPPONENT_JOINED, {
         status: updatedRoom.status,
+        opponentHand: opponent?.hand.map(({ graph }) => graph) ?? [],
         currentTurn: updatedRoom.currentTurn,
         yourRole: index === 0 ? 'player1' : 'player2',
       });
@@ -85,17 +87,36 @@ export class RoomsGateway implements OnGatewayDisconnect {
     const target = this.roomsService.getActiveOpponentGraph(room, role);
     if (!target) throw new Error('Grafo não encontrado');
     const answer = answerQuestion(target.properties, data.question);
+    const filterResult = this.roomsService.filterOpponentGraphs(room, role, data.question, answer);
+    const finished = filterResult.remainingGraphIds.length === 1;
     const updatedRoom = await this.roomsService.recordQuestion(room.code, {
       askedBy: role,
       question: data.question,
       answer,
+      ...filterResult,
     });
     this.server.to(room.code).emit(EVENTS.QUESTION_ANSWERED, {
       question: data.question,
       answer,
+      ...filterResult,
+      remainingCount: filterResult.remainingGraphIds.length,
       currentTurn: updatedRoom.currentTurn,
     });
-    return { answer, currentTurn: updatedRoom.currentTurn };
+    if (finished) {
+      updatedRoom.status = 'FINISHED';
+      await this.roomsService.saveRoom(updatedRoom);
+      this.server.to(room.code).emit(EVENTS.GAME_OVER, {
+        winner: role,
+        remainingGraphIds: filterResult.remainingGraphIds,
+      });
+    }
+    return {
+      answer,
+      ...filterResult,
+      remainingCount: filterResult.remainingGraphIds.length,
+      finished,
+      currentTurn: updatedRoom.currentTurn,
+    };
   }
 
   @SubscribeMessage(EVENTS.MAKE_GUESS)

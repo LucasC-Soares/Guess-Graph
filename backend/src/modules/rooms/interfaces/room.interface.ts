@@ -8,6 +8,7 @@ export interface PlayerState {
   username: string;
   hand: GraphWithProperties[]; // os grafos DESSE jogador (o oponente tenta adivinhar)
   activeOpponentGraphId?: string;
+  remainingOpponentGraphIds: string[];
   score: number;
   guessedGraphIds: string[];
 }
@@ -16,6 +17,8 @@ export interface QuestionLogEntry {
   askedBy: 'player1' | 'player2';
   question: Question;
   answer: boolean;
+  eliminatedGraphIds: string[];
+  remainingGraphIds: string[];
 }
 
 export interface Room {

@@ -55,7 +55,7 @@ describe('RoomsGateway', () => {
     gateway.server = server as never;
   });
 
-  it('sends only opaque references when the game starts', async () => {
+  it('sends public opponent graphs without private properties', async () => {
     const host = socket('socket-1');
     const guest = socket('socket-2');
     const { code } = await gateway.handleCreateRoom({ username: 'Alice' }, host);
@@ -64,9 +64,9 @@ describe('RoomsGateway', () => {
     expect(emit).toHaveBeenCalledTimes(2);
     const firstPayload = emit.mock.calls[0][1];
     expect(firstPayload).not.toHaveProperty('code');
-    expect(firstPayload).not.toHaveProperty('opponentHand');
-    expect(firstPayload).not.toHaveProperty('graph');
-    expect(firstPayload).not.toHaveProperty('edges');
+    expect(firstPayload.opponentHand).toHaveLength(1);
+    expect(firstPayload.opponentHand[0]).not.toHaveProperty('properties');
+    expect(firstPayload.opponentHand[0]).toHaveProperty('edges');
   });
 
   it('answers a question using the room associated with the socket', async () => {
@@ -81,7 +81,14 @@ describe('RoomsGateway', () => {
       host,
     );
 
-    expect(result).toEqual({ answer: true, currentTurn: 'player2' });
+    expect(result).toEqual(expect.objectContaining({
+      answer: true,
+      eliminatedGraphIds: [],
+      remainingGraphIds: expect.any(Array),
+      remainingCount: 1,
+      finished: true,
+      currentTurn: 'player2',
+    }));
     expect(emit).toHaveBeenCalledWith('game:question-answered', expect.objectContaining({
       question: { type: QuestionType.IS_TREE },
       answer: true,

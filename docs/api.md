@@ -98,7 +98,7 @@ Acknowledgement:
 
 ### `game:ask-question`
 
-Faz uma pergunta sobre o alvo ativo da partida. A sala e o jogador sao obtidos do socket associado; o cliente nao informa nem referencia o grafo do oponente.
+Faz uma pergunta sobre o grafo secreto do oponente. A sala e o jogador sao obtidos do socket associado; o cliente nao informa nem referencia o grafo do oponente.
 
 Payload:
 
@@ -126,11 +126,17 @@ Acknowledgement:
 ```json
 {
   "answer": true,
+  "eliminatedGraphIds": ["graph-2"],
+  "remainingGraphIds": ["graph-1"],
+  "remainingCount": 1,
+  "finished": true,
   "currentTurn": "player2"
 }
 ```
 
-O mesmo resultado e emitido para os dois sockets em `game:question-answered`.
+`eliminatedGraphIds` lista os grafos cuja propriedade nao correspondeu a resposta.
+`remainingGraphIds` lista os candidatos ainda possiveis. O mesmo resultado e
+emitido para os dois sockets em `game:question-answered`.
 
 ### `game:make-guess`
 
@@ -170,7 +176,12 @@ Emitido individualmente para cada jogador quando a sala fica completa. O evento 
 }
 ```
 
-O alvo ativo e mantido exclusivamente no estado da sala no Redis.
+O grafo secreto e o conjunto de candidatos restantes sao mantidos exclusivamente
+no estado da sala no Redis. O cliente recebe a estrutura publica para conseguir
+visualizar os grafos, mas nunca recebe suas propriedades calculadas.
+
+Quando `remainingCount` chega a `1`, o servidor marca a sala como `FINISHED` e
+emite `game:over`.
 
 ### `game:question-answered`
 

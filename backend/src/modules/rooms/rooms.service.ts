@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { GraphWithProperties } from '../graphs/interfaces/graph.interface';
 import { PlayerState, QuestionLogEntry, Room } from './interfaces/room.interface';
 import { RedisRoomStore, RoomStore } from './redis-room-store';
+import { Question, answerQuestion } from '../questions/question-catalog';
 
 /** Estado efêmero das salas, compartilhado entre instâncias via Redis. */
 @Injectable()
@@ -61,6 +62,8 @@ export class RoomsService {
     room.players[1].hand = player2Graphs;
     room.players[0].activeOpponentGraphId = player2Graphs[0]?.graph.id;
     room.players[1].activeOpponentGraphId = player1Graphs[0]?.graph.id;
+    room.players[0].remainingOpponentGraphIds = player2Graphs.map(({ graph }) => graph.id);
+    room.players[1].remainingOpponentGraphIds = player1Graphs.map(({ graph }) => graph.id);
     await this.roomStore.set(room);
     return room;
   }
@@ -71,6 +74,29 @@ export class RoomsService {
     room.currentTurn = room.currentTurn === 'player1' ? 'player2' : 'player1';
     await this.roomStore.set(room);
     return room;
+  }
+
+  filterOpponentGraphs(
+    room: Room,
+    role: 'player1' | 'player2',
+    question: Question,
+    answer: boolean,
+  ): { eliminatedGraphIds: string[]; remainingGraphIds: string[] } {
+    const player = room.players[role === 'player1' ? 0 : 1];
+    const opponent = room.players[role === 'player1' ? 1 : 0];
+    if (!player || !opponent) throw new Error('Jogadores não encontrados');
+
+    const remainingSet = new Set(player.remainingOpponentGraphIds);
+    const eliminatedGraphIds = opponent.hand
+      .filter(({ graph, properties }) => remainingSet.has(graph.id) && answerQuestion(properties, question) !== answer)
+      .map(({ graph }) => graph.id);
+    player.remainingOpponentGraphIds = player.remainingOpponentGraphIds
+      .filter((graphId) => !eliminatedGraphIds.includes(graphId));
+
+    return {
+      eliminatedGraphIds,
+      remainingGraphIds: player.remainingOpponentGraphIds,
+    };
   }
 
   async removeRoom(code: string): Promise<void> {
@@ -132,6 +158,7 @@ export class RoomsService {
       username: username.trim(),
       socketId,
       hand: [],
+      remainingOpponentGraphIds: [],
       score: 0,
       guessedGraphIds: [],
     };

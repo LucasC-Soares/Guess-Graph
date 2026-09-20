@@ -53,6 +53,8 @@ describe('RoomsService', () => {
       askedBy: 'player1',
       question: { type: QuestionType.IS_TREE },
       answer: true,
+      eliminatedGraphIds: [],
+      remainingGraphIds: ['graph-1'],
     });
     expect(room.players[0]?.hand).toHaveLength(1);
     expect(room.questionLog).toHaveLength(1);
