@@ -11,15 +11,17 @@ export class RoomsService {
 
   constructor(@Inject(RedisRoomStore) private readonly roomStore: RoomStore) {}
 
-  /** Gera um código curto e fácil de compartilhar (ex: 4-6 letras maiúsculas). */
+  /** Gera um código curto e aumenta o comprimento se houver colisão. */
   async generateRoomCode(): Promise<string> {
-    do {
+    let codeLength = 5;
+    while (true) {
       let code = '';
-      for (let index = 0; index < 5; index += 1) {
+      for (let index = 0; index < codeLength; index += 1) {
         code += this.codeAlphabet[Math.floor(Math.random() * this.codeAlphabet.length)];
       }
       if (!(await this.roomStore.exists(code))) return code;
-    } while (true);
+      codeLength += 1;
+    }
   }
 
   async createRoom(username: string, socketId: string): Promise<string> {
