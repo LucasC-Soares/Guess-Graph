@@ -121,7 +121,7 @@ export class RoomsGateway implements OnGatewayDisconnect {
 
   @SubscribeMessage(EVENTS.MAKE_GUESS)
   async handleMakeGuess(
-    @MessageBody() data: { targetRef: string; guessedGraphId: string },
+    @MessageBody() data: { guessedGraphId: string },
     @ConnectedSocket() client: Socket,
   ) {
     const room = await this.roomsService.getRoomForSocket(client.id, client.data.roomCode);
