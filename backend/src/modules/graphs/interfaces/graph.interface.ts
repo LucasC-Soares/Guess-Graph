@@ -8,20 +8,14 @@ export interface Graph {
   edges: [number, number][];
 }
 
-/**
- * Propriedades pré-computadas no momento da geração — nunca confie no
- * cliente pra calcular isso, o servidor é a fonte da verdade das respostas.
- */
 export interface GraphProperties {
   isConnected: boolean;
   isBipartite: boolean;
   hasCycle: boolean;
-  isTree: boolean; // conexo + sem ciclo
+  isTree: boolean;
   hasBridge: boolean;
   maxDegree: number;
-  // TODO: adicionar mais propriedades conforme for expandindo o catálogo
-  // de perguntas (ver questions/question-catalog.ts). Ex: isEulerian,
-  // isRegular, vertexCount par/ímpar (essa nem precisa pré-computar).
+  minDegree: number;
 }
 
 export interface GraphWithProperties {

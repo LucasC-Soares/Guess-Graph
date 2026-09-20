@@ -1,5 +1,8 @@
 # Guess Graph
 
+As decisoes arquiteturais do projeto estao documentadas em [docs/adr/README.md](docs/adr/README.md).
+O contrato da API HTTP e dos eventos Socket.IO esta em [docs/api.md](docs/api.md).
+
 Jogo 1x1 onde cada jogador tenta adivinhar as propriedades estruturais dos
 grafos do oponente através de perguntas de sim/não.
 

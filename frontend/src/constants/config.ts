@@ -1,4 +1,4 @@
-export const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'http://localhost:3334';
+export const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'http://localhost:3001';
 
 /**
  * Precisa bater 1:1 com o objeto EVENTS em

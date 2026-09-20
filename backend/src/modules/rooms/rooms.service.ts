@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Room } from './interfaces/room.interface';
+import { GraphWithProperties } from '../graphs/interfaces/graph.interface';
+import { PlayerState, QuestionLogEntry, Room } from './interfaces/room.interface';
 
 /**
  * Estado do jogo em memória — suficiente pro MVP (uma instância do servidor).
@@ -9,29 +10,90 @@ import { Room } from './interfaces/room.interface';
 @Injectable()
 export class RoomsService {
   private rooms = new Map<string, Room>();
+  private readonly codeAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
   /** Gera um código curto e fácil de compartilhar (ex: 4-6 letras maiúsculas). */
   generateRoomCode(): string {
-    // TODO: gerar código aleatório (ex: 4 letras de A-Z) e garantir que não
-    // colide com uma sala já existente (checar this.rooms.has(code)).
-    throw new Error('não implementado');
+    do {
+      let code = '';
+      for (let index = 0; index < 5; index += 1) {
+        code += this.codeAlphabet[Math.floor(Math.random() * this.codeAlphabet.length)];
+      }
+      if (!this.rooms.has(code)) return code;
+    } while (true);
   }
 
-  // TODO: createRoom(hostUsername, hostSocketId): cria Room com status WAITING_FOR_PLAYER,
-  //   player1 preenchido, player2 = null. Salva no Map e retorna o código.
+  createRoom(username: string, socketId: string): string {
+    const code = this.generateRoomCode();
+    const room: Room = {
+      code,
+      status: 'WAITING_FOR_PLAYER',
+      players: [this.createPlayer(username, socketId), null],
+      currentTurn: 'player1',
+      questionLog: [],
+    };
+    this.rooms.set(code, room);
+    return code;
+  }
 
-  // TODO: joinRoom(code, guestUsername, guestSocketId): preenche player2,
-  //   muda status pra IN_PROGRESS. Retornar erro se a sala não existir,
-  //   já estiver cheia, ou já estiver em andamento.
+  joinRoom(code: string, username: string, socketId: string): Room {
+    const room = this.getRoom(code);
+    if (room.status !== 'WAITING_FOR_PLAYER' || room.players[1]) {
+      throw new Error('A sala já está cheia ou em andamento');
+    }
+    room.players[1] = this.createPlayer(username, socketId);
+    room.status = 'IN_PROGRESS';
+    return room;
+  }
 
-  // TODO: getRoom(code): busca simples no Map (throw se não existir)
+  getRoom(code: string): Room {
+    const normalizedCode = code.trim().toUpperCase();
+    const room = this.rooms.get(normalizedCode);
+    if (!room) throw new Error('Sala não encontrada');
+    return room;
+  }
 
-  // TODO: assignHands(code, player1Graphs, player2Graphs): popular `hand` de cada jogador
-  //   com os grafos gerados (ver GraphGeneratorService + GraphPropertiesService)
+  assignHands(code: string, player1Graphs: GraphWithProperties[], player2Graphs: GraphWithProperties[]): Room {
+    const room = this.getRoom(code);
+    if (!room.players[0] || !room.players[1]) {
+      throw new Error('A sala precisa de dois jogadores para receber as mãos');
+    }
+    room.players[0].hand = player1Graphs;
+    room.players[1].hand = player2Graphs;
+    return room;
+  }
 
-  // TODO: recordQuestion(code, entry: QuestionLogEntry): adiciona ao questionLog
-  //   e alterna currentTurn
+  recordQuestion(code: string, entry: QuestionLogEntry): Room {
+    const room = this.getRoom(code);
+    room.questionLog.push(entry);
+    room.currentTurn = room.currentTurn === 'player1' ? 'player2' : 'player1';
+    return room;
+  }
 
-  // TODO: removeRoom(code) / cleanup: chamado quando os dois jogadores desconectam
-  //   (evita vazamento de memória com salas abandonadas — considerar TTL simples).
+  removeRoom(code: string): void {
+    this.rooms.delete(code.trim().toUpperCase());
+  }
+
+  removePlayer(socketId: string): string | undefined {
+    for (const [code, room] of this.rooms) {
+      const playerIndex = room.players.findIndex((player) => player?.socketId === socketId);
+      if (playerIndex === -1) continue;
+      room.players[playerIndex] = null;
+      if (!room.players[0] && !room.players[1]) this.rooms.delete(code);
+      else room.status = 'WAITING_FOR_PLAYER';
+      return code;
+    }
+    return undefined;
+  }
+
+  getPlayerRole(room: Room, socketId: string): 'player1' | 'player2' | undefined {
+    if (room.players[0]?.socketId === socketId) return 'player1';
+    if (room.players[1]?.socketId === socketId) return 'player2';
+    return undefined;
+  }
+
+  private createPlayer(username: string, socketId: string): PlayerState {
+    if (!username.trim() || !socketId.trim()) throw new Error('Nome e socket são obrigatórios');
+    return { username: username.trim(), socketId, hand: [], score: 0, guessedGraphIds: [] };
+  }
 }

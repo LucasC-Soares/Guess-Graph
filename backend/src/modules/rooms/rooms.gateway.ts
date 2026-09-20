@@ -5,11 +5,12 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
+import { OnGatewayDisconnect } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { RoomsService } from './rooms.service';
 import { GraphGeneratorService } from '../graphs/graph-generator.service';
 import { GraphPropertiesService } from '../graphs/graph-properties.service';
-import { Question } from '../questions/question-catalog';
+import { Question, answerQuestion } from '../questions/question-catalog';
 
 /**
  * Um evento por ação do jogo. Mantenha os payloads pequenos e nomeados
@@ -30,9 +31,9 @@ const EVENTS = {
 } as const;
 
 @WebSocketGateway({ cors: { origin: process.env.FRONTEND_URL ?? 'http://localhost:3000' } })
-export class RoomsGateway {
+export class RoomsGateway implements OnGatewayDisconnect {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   constructor(
     private readonly roomsService: RoomsService,
@@ -42,11 +43,9 @@ export class RoomsGateway {
 
   @SubscribeMessage(EVENTS.CREATE_ROOM)
   handleCreateRoom(@MessageBody() data: { username: string }, @ConnectedSocket() client: Socket) {
-    // TODO 1: this.roomsService.createRoom(data.username, client.id) -> pega o código
-    // TODO 2: client.join(code) -- entra na "room" do socket.io (mesmo nome do código)
-    // TODO 3: emitir de volta pro criador o código da sala (ack, não broadcast:
-    //   return { code } como retorno direto do handler, socket.io suporta isso)
-    throw new Error('não implementado');
+    const code = this.roomsService.createRoom(data.username, client.id);
+    void client.join(code);
+    return { code, status: 'WAITING_FOR_PLAYER' };
   }
 
   @SubscribeMessage(EVENTS.JOIN_ROOM)
@@ -54,37 +53,51 @@ export class RoomsGateway {
     @MessageBody() data: { code: string; username: string },
     @ConnectedSocket() client: Socket,
   ) {
-    // TODO 1: this.roomsService.joinRoom(data.code, data.username, client.id)
-    // TODO 2: client.join(data.code)
-    // TODO 3: gerar as mãos dos dois jogadores AQUI (é o momento em que a
-    //   sala fica completa e o jogo pode começar):
-    //   const graphsP1 = this.graphGenerator.generateBatch(N, vertexCount);
-    //   const graphsP2 = this.graphGenerator.generateBatch(N, vertexCount);
-    //   computar GraphProperties de cada um (this.graphProperties.computeAll)
-    //   this.roomsService.assignHands(data.code, ...)
-    // TODO 4: this.server.to(data.code).emit(EVENTS.OPPONENT_JOINED, ...)
-    //   -- avisa os DOIS clientes que o jogo começou, mandando pra cada um
-    //   APENAS os grafos do oponente (nunca os seus próprios, senão o
-    //   jogador vê a resposta e o jogo perde a graça)
-    throw new Error('não implementado');
+    const room = this.roomsService.joinRoom(data.code, data.username, client.id);
+    void client.join(room.code);
+    const createHand = () => this.graphGenerator.generateBatch(3, 5).map((graph) => ({
+      graph,
+      properties: this.graphProperties.computeAll(graph),
+    }));
+    this.roomsService.assignHands(room.code, createHand(), createHand());
+    for (const [index, player] of room.players.entries()) {
+      if (!player) continue;
+      const opponent = room.players[index === 0 ? 1 : 0];
+      this.server.to(player.socketId).emit(EVENTS.OPPONENT_JOINED, {
+        code: room.code,
+        status: room.status,
+        opponentHand: opponent?.hand.map(({ graph }) => graph) ?? [],
+        currentTurn: room.currentTurn,
+        yourRole: index === 0 ? 'player1' : 'player2',
+      });
+    }
+    return { code: room.code, status: room.status };
   }
 
   @SubscribeMessage(EVENTS.ASK_QUESTION)
   handleAskQuestion(
-    @MessageBody() data: { code: string; question: Question },
+    @MessageBody() data: { code: string; graphId: string; question: Question },
     @ConnectedSocket() client: Socket,
   ) {
-    // TODO 1: buscar a sala, achar QUAL jogador é o `client` e qual é o oponente
-    // TODO 2: validar que é a vez desse jogador (currentTurn) -- senão, ignorar/erro
-    // TODO 3: a pergunta é sobre o grafo do OPONENTE: pegar a hand do oponente,
-    //   decidir A QUAL grafo da mão a pergunta se refere (provavelmente o
-    //   payload já inclui um graphId escondido — repensar o contrato se preciso)
-    // TODO 4: answerQuestion(properties, data.question) -> resposta booleana
-    // TODO 5: this.roomsService.recordQuestion(...) -- salva no log e alterna turno
-    // TODO 6: this.server.to(data.code).emit(EVENTS.QUESTION_ANSWERED, { ... })
-    //   -- manda a pergunta E a resposta pros dois (transparência: os dois veem
-    //   o histórico de perguntas, só não veem os grafos crus do oponente)
-    throw new Error('não implementado');
+    const room = this.roomsService.getRoom(data.code);
+    const role = this.roomsService.getPlayerRole(room, client.id);
+    if (!role || room.currentTurn !== role) throw new Error('Não é a vez deste jogador');
+    const opponent = room.players[role === 'player1' ? 1 : 0];
+    const target = opponent?.hand.find(({ graph }) => graph.id === data.graphId);
+    if (!target) throw new Error('Grafo não encontrado');
+    const answer = answerQuestion(target.properties, data.question);
+    const updatedRoom = this.roomsService.recordQuestion(room.code, {
+      askedBy: role,
+      question: data.question,
+      answer,
+    });
+    this.server.to(room.code).emit(EVENTS.QUESTION_ANSWERED, {
+      graphId: data.graphId,
+      question: data.question,
+      answer,
+      currentTurn: updatedRoom.currentTurn,
+    });
+    return { answer, currentTurn: updatedRoom.currentTurn };
   }
 
   @SubscribeMessage(EVENTS.MAKE_GUESS)
@@ -92,13 +105,32 @@ export class RoomsGateway {
     @MessageBody() data: { code: string; graphId: string; guessedGraphId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    // TODO: comparar o chute com o grafo real (por id), atualizar score,
-    //   checar condição de vitória (ex: acertou todos os grafos do oponente),
-    //   emitir EVENTS.GAME_OVER se acabou, senão emitir atualização de estado.
-    throw new Error('não implementado');
+    const room = this.roomsService.getRoom(data.code);
+    const role = this.roomsService.getPlayerRole(room, client.id);
+    if (!role || room.currentTurn !== role) throw new Error('Não é a vez deste jogador');
+    const player = room.players[role === 'player1' ? 0 : 1];
+    const opponent = room.players[role === 'player1' ? 1 : 0];
+    if (!player || !opponent || !opponent.hand.some(({ graph }) => graph.id === data.graphId)) {
+      throw new Error('Grafo não encontrado');
+    }
+    const correct = data.graphId === data.guessedGraphId;
+    if (correct && !player.guessedGraphIds.includes(data.graphId)) {
+      player.guessedGraphIds.push(data.graphId);
+      player.score += 1;
+    }
+    const finished = player.score >= opponent.hand.length;
+    if (finished) {
+      room.status = 'FINISHED';
+      this.server.to(room.code).emit(EVENTS.GAME_OVER, { winner: role, score: player.score });
+    } else {
+      room.currentTurn = role === 'player1' ? 'player2' : 'player1';
+      this.server.to(room.code).emit(EVENTS.ROOM_UPDATED, { currentTurn: room.currentTurn, score: player.score });
+    }
+    return { correct, finished, score: player.score };
   }
 
-  // TODO: handleDisconnect(client): @SubscribeMessage não cobre isso -- use o
-  //   ciclo de vida do gateway (implements OnGatewayDisconnect) pra limpar
-  //   salas quando os dois jogadores saem.
+  handleDisconnect(client: Socket): void {
+    const code = this.roomsService.removePlayer(client.id);
+    if (code) this.server.to(code).emit(EVENTS.ROOM_UPDATED, { status: 'WAITING_FOR_PLAYER' });
+  }
 }
