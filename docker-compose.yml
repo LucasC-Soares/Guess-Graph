@@ -1,0 +1,50 @@
+name: guess-graph
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: ${BUILD_TARGET:-production}
+      cache_from:
+        - type=local,src=${DOCKER_CACHE_DIR:-.docker-cache/backend}
+      cache_to:
+        - type=local,dest=${DOCKER_CACHE_DIR:-.docker-cache/backend},mode=max
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3001
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "${BACKEND_PORT:-3001}:3001"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: ${BUILD_TARGET:-production}
+      args:
+        NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-http://localhost:3001}
+      cache_from:
+        - type=local,src=${DOCKER_CACHE_DIR:-.docker-cache/frontend}
+      cache_to:
+        - type=local,dest=${DOCKER_CACHE_DIR:-.docker-cache/frontend},mode=max
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-http://localhost:3001}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - backend

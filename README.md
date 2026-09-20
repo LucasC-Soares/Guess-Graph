@@ -74,3 +74,24 @@ Todo arquivo com lógica tem `// TODO:` marcando o que falta e uma pista de
 como implementar. Comece pelo `graph-properties.service.ts` — ele é
 puro algoritmo, sem NestJS/socket no meio, então é o mais fácil de validar
 isoladamente antes de subir a stack toda.
+
+## Docker Compose
+
+Com Docker BuildKit habilitado, suba frontend, backend e Redis juntos:
+
+```bash
+docker compose up --build
+```
+
+Frontend: http://localhost:3000. Backend e Socket.IO: http://localhost:3001.
+O Redis é efêmero e não usa volume persistente. Os builds usam cache local em
+`.docker-cache/`, ignorado pelos contextos Docker.
+
+Para usar os estágios de desenvolvimento:
+
+```bash
+BUILD_TARGET=development docker compose up --build
+```
+
+As portas e a URL pública do WebSocket podem ser sobrescritas por
+`FRONTEND_PORT`, `BACKEND_PORT` e `NEXT_PUBLIC_WS_URL`.
