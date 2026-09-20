@@ -27,4 +27,5 @@ export interface Room {
   players: [PlayerState | null, PlayerState | null]; // player1, player2
   currentTurn: 'player1' | 'player2';
   questionLog: QuestionLogEntry[];
+  rematchVotes: ('player1' | 'player2')[];
 }

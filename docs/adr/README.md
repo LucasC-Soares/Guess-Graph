@@ -15,6 +15,7 @@ Este diretorio registra decisoes arquiteturais do Guess Graph. Cada ADR document
 - [ADR-0009: Testes por camadas, independentes de Socket.IO real](0009-testes-por-camadas.md)
 - [ADR-0010: Estado efemero de salas no Redis](0010-estado-efemero-de-salas-no-redis.md)
 - [ADR-0011: Filtragem de grafos e fim da partida](0011-filtragem-de-grafos-e-fim-da-partida.md)
+- [ADR-0012: Encerramento de sala e revanche por consenso](0012-encerramento-de-sala-e-revanche-por-consenso.md)
 
 ## Como adicionar um ADR
 

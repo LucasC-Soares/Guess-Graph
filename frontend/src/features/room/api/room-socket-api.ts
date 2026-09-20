@@ -13,6 +13,14 @@ export function joinRoom(code: string, username: string): void {
   throw new Error('não implementado');
 }
 
+export function requestRematch(): void {
+  getSocket().emit(SOCKET_EVENTS.REMATCH);
+}
+
+export function closeRoom(): void {
+  getSocket().emit(SOCKET_EVENTS.CLOSE_ROOM);
+}
+
 // TODO: getSocket().on(SOCKET_EVENTS.OPPONENT_JOINED, callback)
 //   dispara quando o segundo jogador entra e o jogo de fato começa
 export function onOpponentJoined(callback: (state: RoomStateDTO) => void): void {

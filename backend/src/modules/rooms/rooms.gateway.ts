@@ -23,11 +23,14 @@ const EVENTS = {
   JOIN_ROOM: 'room:join',
   ASK_QUESTION: 'game:ask-question',
   MAKE_GUESS: 'game:make-guess',
+  CLOSE_ROOM: 'room:close',
+  REMATCH: 'game:rematch',
   // Eventos emitidos pelo servidor (broadcast):
   ROOM_UPDATED: 'room:updated',
   OPPONENT_JOINED: 'room:opponent-joined',
   QUESTION_ANSWERED: 'game:question-answered',
   GAME_OVER: 'game:over',
+  ROOM_CLOSED: 'room:closed',
 } as const;
 
 @WebSocketGateway({ cors: { origin: process.env.FRONTEND_URL ?? 'http://localhost:3000' } })
@@ -142,6 +145,43 @@ export class RoomsGateway implements OnGatewayDisconnect {
     });
     await this.roomsService.saveRoom(room);
     return { correct, finished, score: player.score };
+  }
+
+  @SubscribeMessage(EVENTS.REMATCH)
+  async handleRematch(@ConnectedSocket() client: Socket) {
+    const room = await this.roomsService.getRoomForSocket(client.id, client.data.roomCode);
+    const role = this.roomsService.getPlayerRole(room, client.id);
+    if (!role) throw new Error('Jogador não pertence à sala');
+    const accepted = await this.roomsService.requestRematch(room.code, role);
+    if (!accepted) {
+      this.server.to(room.code).emit(EVENTS.ROOM_UPDATED, { rematchRequestedBy: role });
+      return { accepted: false, status: 'WAITING_FOR_REMATCH' };
+    }
+    const createHand = () => this.graphGenerator.generateBatch(3, 5).map((graph) => ({
+      graph,
+      properties: this.graphProperties.computeAll(graph),
+    }));
+    await this.roomsService.assignHands(room.code, createHand(), createHand());
+    const restartedRoom = await this.roomsService.getRoom(room.code);
+    for (const [index, player] of restartedRoom.players.entries()) {
+      if (!player) continue;
+      const opponent = restartedRoom.players[index === 0 ? 1 : 0];
+      this.server.to(player.socketId).emit(EVENTS.OPPONENT_JOINED, {
+        status: restartedRoom.status,
+        opponentHand: opponent?.hand.map(({ graph }) => graph) ?? [],
+        currentTurn: restartedRoom.currentTurn,
+        yourRole: index === 0 ? 'player1' : 'player2',
+      });
+    }
+    return { accepted: true, status: restartedRoom.status };
+  }
+
+  @SubscribeMessage(EVENTS.CLOSE_ROOM)
+  async handleCloseRoom(@ConnectedSocket() client: Socket) {
+    const room = await this.roomsService.getRoomForSocket(client.id, client.data.roomCode);
+    await this.roomsService.removeRoom(room.code);
+    this.server.to(room.code).emit(EVENTS.ROOM_CLOSED);
+    return { closed: true };
   }
 
   async handleDisconnect(client: Socket): Promise<void> {

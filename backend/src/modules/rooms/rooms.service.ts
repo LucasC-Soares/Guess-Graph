@@ -30,6 +30,7 @@ export class RoomsService {
       players: [this.createPlayer(username, socketId), null],
       currentTurn: 'player1',
       questionLog: [],
+      rematchVotes: [],
     };
     await this.roomStore.set(room);
     return code;
@@ -129,6 +130,30 @@ export class RoomsService {
 
   async saveRoom(room: Room): Promise<void> {
     await this.roomStore.set(room);
+  }
+
+  async requestRematch(code: string, role: 'player1' | 'player2'): Promise<boolean> {
+    const room = await this.getRoom(code);
+    if (room.status !== 'FINISHED') throw new Error('A revanche só pode ser solicitada após o fim da partida');
+    if (!room.rematchVotes.includes(role)) room.rematchVotes.push(role);
+    if (room.rematchVotes.length < 2) {
+      await this.roomStore.set(room);
+      return false;
+    }
+    room.status = 'IN_PROGRESS';
+    room.currentTurn = 'player1';
+    room.questionLog = [];
+    room.rematchVotes = [];
+    for (const player of room.players) {
+      if (!player) continue;
+      player.hand = [];
+      player.activeOpponentGraphId = undefined;
+      player.remainingOpponentGraphIds = [];
+      player.score = 0;
+      player.guessedGraphIds = [];
+    }
+    await this.roomStore.set(room);
+    return true;
   }
 
   getActiveOpponentGraph(room: Room, role: 'player1' | 'player2'): GraphWithProperties | undefined {

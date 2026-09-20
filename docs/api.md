@@ -163,6 +163,28 @@ Acknowledgement:
 Todo `make-guess` válido encerra a partida. Se `correct` for `true`, vence o
 jogador que chutou; se for `false`, vence o oponente.
 
+### `game:rematch`
+
+Solicita uma revanche. Não possui payload. A partida só reinicia quando os dois
+jogadores enviarem o evento.
+
+Enquanto aguarda o outro jogador, o acknowledgement é:
+
+```json
+{
+  "accepted": false,
+  "status": "WAITING_FOR_REMATCH"
+}
+```
+
+Quando os dois concordam, o servidor gera novas mãos, zera placar e histórico,
+restaura `IN_PROGRESS` e emite `room:opponent-joined` novamente.
+
+### `room:close`
+
+Encerra e remove a sala. Não possui payload e pode ser enviado por qualquer
+jogador conectado à sala.
+
 ## Eventos emitidos pelo servidor
 
 ### `room:opponent-joined`
@@ -229,6 +251,10 @@ Apos desconexao:
 }
 ```
 
+### `room:closed`
+
+Emitido para os jogadores quando a sala é encerrada e removida do Redis.
+
 ## Tipos de pergunta
 
 | Tipo | Parametros | Significado |
@@ -260,6 +286,7 @@ Vertices sao inteiros de `0` a `vertexCount - 1`. As arestas sao nao direcionada
 4. Perguntas validas registram uma entrada no log e alternam o turno.
 5. Chutes validos alternam o turno quando a partida nao termina.
 6. Um jogador que nao possui o turno recebe erro e a acao nao altera o estado.
+7. Uma sala possui uma partida ativa por vez; a revanche reinicia a mesma sala somente com concordancia dos dois jogadores.
 
 ## Erros
 
