@@ -60,7 +60,7 @@ export class RoomsGateway implements OnGatewayDisconnect {
     const room = await this.roomsService.joinRoom(data.code, data.username, client.id);
     client.data.roomCode = room.code;
     void client.join(room.code);
-    const createHand = () => this.graphGenerator.generateBatch(3, 5).map((graph) => ({
+    const createHand = () => this.graphGenerator.generateHand().map((graph) => ({
       graph,
       properties: this.graphProperties.computeAll(graph),
     }));
@@ -157,7 +157,7 @@ export class RoomsGateway implements OnGatewayDisconnect {
       this.server.to(room.code).emit(EVENTS.ROOM_UPDATED, { rematchRequestedBy: role });
       return { accepted: false, status: 'WAITING_FOR_REMATCH' };
     }
-    const createHand = () => this.graphGenerator.generateBatch(3, 5).map((graph) => ({
+    const createHand = () => this.graphGenerator.generateHand().map((graph) => ({
       graph,
       properties: this.graphProperties.computeAll(graph),
     }));

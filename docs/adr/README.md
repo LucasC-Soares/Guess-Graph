@@ -16,6 +16,7 @@ Este diretorio registra decisoes arquiteturais do Guess Graph. Cada ADR document
 - [ADR-0010: Estado efemero de salas no Redis](0010-estado-efemero-de-salas-no-redis.md)
 - [ADR-0011: Filtragem de grafos e fim da partida](0011-filtragem-de-grafos-e-fim-da-partida.md)
 - [ADR-0012: Encerramento de sala e revanche por consenso](0012-encerramento-de-sala-e-revanche-por-consenso.md)
+- [ADR-0013: Tamanho da mão e limite de vértices](0013-mao-e-limite-de-vertices.md)
 
 ## Como adicionar um ADR
 

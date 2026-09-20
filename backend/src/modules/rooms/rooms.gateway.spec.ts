@@ -39,12 +39,16 @@ describe('RoomsGateway', () => {
       listCodes: async () => [...rooms.keys()],
     };
     roomsService = new RoomsService(store);
+    let generatedHand = 0;
     const graphGenerator = {
-      generateBatch: jest.fn().mockImplementation((_count: number, _vertexCount: number) => [{
-        id: `graph-${Math.random()}`,
+      generateHand: jest.fn().mockImplementation(() => Array.from({ length: 10 }, (_value, index) => ({
+        id: `graph-${generatedHand}-${index}`,
         vertexCount: 2,
         edges: [[0, 1]],
-      }]),
+      })).map((graph) => {
+        generatedHand += 1;
+        return graph;
+      })),
     } as unknown as GraphGeneratorService;
     const propertiesService = {
       computeAll: jest.fn().mockReturnValue(graphProperties),
@@ -64,7 +68,7 @@ describe('RoomsGateway', () => {
     expect(emit).toHaveBeenCalledTimes(2);
     const firstPayload = emit.mock.calls[0][1];
     expect(firstPayload).not.toHaveProperty('code');
-    expect(firstPayload.opponentHand).toHaveLength(1);
+    expect(firstPayload.opponentHand).toHaveLength(10);
     expect(firstPayload.opponentHand[0]).not.toHaveProperty('properties');
     expect(firstPayload.opponentHand[0]).toHaveProperty('edges');
   });
@@ -85,7 +89,7 @@ describe('RoomsGateway', () => {
       answer: true,
       eliminatedGraphIds: [],
       remainingGraphIds: expect.any(Array),
-      remainingCount: 1,
+      remainingCount: 10,
       finished: false,
       currentTurn: 'player2',
     }));

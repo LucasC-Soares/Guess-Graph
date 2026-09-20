@@ -9,6 +9,22 @@ import { Graph } from './interfaces/graph.interface';
  */
 @Injectable()
 export class GraphGeneratorService {
+  static readonly HAND_SIZE = 12;
+  static readonly MIN_HAND_VERTEX_COUNT = 3;
+  static readonly MAX_HAND_VERTEX_COUNT = 20;
+
+  generateHand(): Graph[] {
+    return Array.from({ length: GraphGeneratorService.HAND_SIZE }, () => {
+      const vertexCount = GraphGeneratorService.MIN_HAND_VERTEX_COUNT
+        + Math.floor(Math.random() * (
+          GraphGeneratorService.MAX_HAND_VERTEX_COUNT
+          - GraphGeneratorService.MIN_HAND_VERTEX_COUNT
+          + 1
+        ));
+      return this.generateBatch(1, vertexCount)[0];
+    });
+  }
+
   /**
    * Gera `count` grafos aleatórios com `vertexCount` vértices cada.
    */
