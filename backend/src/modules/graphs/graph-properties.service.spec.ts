@@ -20,7 +20,11 @@ describe('GraphPropertiesService', () => {
     const graph: Graph = {
       id: 'triangle',
       vertexCount: 3,
-      edges: [[0, 1], [1, 2], [2, 0]],
+      edges: [
+        [0, 1],
+        [1, 2],
+        [2, 0],
+      ],
     };
 
     expect(service.computeAll(graph)).toEqual({
@@ -38,7 +42,11 @@ describe('GraphPropertiesService', () => {
     const graph: Graph = {
       id: 'path',
       vertexCount: 4,
-      edges: [[0, 1], [1, 2], [2, 3]],
+      edges: [
+        [0, 1],
+        [1, 2],
+        [2, 3],
+      ],
     };
 
     expect(service.computeAll(graph)).toEqual({
@@ -56,7 +64,10 @@ describe('GraphPropertiesService', () => {
     const graph: Graph = {
       id: 'disconnected',
       vertexCount: 4,
-      edges: [[0, 1], [2, 3]],
+      edges: [
+        [0, 1],
+        [2, 3],
+      ],
     };
 
     expect(service.computeAll(graph)).toEqual({
@@ -74,7 +85,12 @@ describe('GraphPropertiesService', () => {
     const graph: Graph = {
       id: 'even-cycle',
       vertexCount: 4,
-      edges: [[0, 1], [1, 2], [2, 3], [3, 0]],
+      edges: [
+        [0, 1],
+        [1, 2],
+        [2, 3],
+        [3, 0],
+      ],
     };
 
     expect(service.computeAll(graph)).toEqual({

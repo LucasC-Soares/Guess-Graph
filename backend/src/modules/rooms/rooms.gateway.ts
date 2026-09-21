@@ -33,7 +33,9 @@ const EVENTS = {
   ROOM_CLOSED: 'room:closed',
 } as const;
 
-@WebSocketGateway({ cors: { origin: process.env.FRONTEND_URL ?? 'http://localhost:3000' } })
+@WebSocketGateway({
+  cors: { origin: process.env.FRONTEND_URL ?? 'http://localhost:3000' },
+})
 export class RoomsGateway implements OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
@@ -45,7 +47,10 @@ export class RoomsGateway implements OnGatewayDisconnect {
   ) {}
 
   @SubscribeMessage(EVENTS.CREATE_ROOM)
-  async handleCreateRoom(@MessageBody() data: { username: string }, @ConnectedSocket() client: Socket) {
+  async handleCreateRoom(
+    @MessageBody() data: { username: string },
+    @ConnectedSocket() client: Socket,
+  ) {
     const code = await this.roomsService.createRoom(data.username, client.id);
     client.data.roomCode = code;
     void client.join(code);
@@ -56,17 +61,30 @@ export class RoomsGateway implements OnGatewayDisconnect {
   async handleJoinRoom(
     @MessageBody() data: { code: string; username: string },
     @ConnectedSocket() client: Socket,
-  ): Promise<{ code: string; status: 'WAITING_FOR_PLAYER' | 'IN_PROGRESS' | 'FINISHED'; opponentHand: unknown[]; currentTurn: 'player1' | 'player2'; yourRole: 'player1' | 'player2' }> {
-    const room = await this.roomsService.joinRoom(data.code, data.username, client.id);
+  ): Promise<{
+    code: string;
+    status: 'WAITING_FOR_PLAYER' | 'IN_PROGRESS' | 'FINISHED';
+    opponentHand: unknown[];
+    currentTurn: 'player1' | 'player2';
+    yourRole: 'player1' | 'player2';
+  }> {
+    const room = await this.roomsService.joinRoom(
+      data.code,
+      data.username,
+      client.id,
+    );
     client.data.roomCode = room.code;
     void client.join(room.code);
-    const createHand = () => this.graphGenerator.generateHand().map((graph) => ({
-      graph,
-      properties: this.graphProperties.computeAll(graph),
-    }));
+    const createHand = () =>
+      this.graphGenerator.generateHand().map((graph) => ({
+        graph,
+        properties: this.graphProperties.computeAll(graph),
+      }));
     await this.roomsService.assignHands(room.code, createHand(), createHand());
     const updatedRoom = await this.roomsService.getRoom(room.code);
-    const myIndex = updatedRoom.players.findIndex((player) => player?.socketId === client.id);
+    const myIndex = updatedRoom.players.findIndex(
+      (player) => player?.socketId === client.id,
+    );
     const myRole: 'player1' | 'player2' = myIndex === 0 ? 'player1' : 'player2';
     const opponent = updatedRoom.players[myIndex === 0 ? 1 : 0];
     const roomState: {
@@ -98,13 +116,22 @@ export class RoomsGateway implements OnGatewayDisconnect {
     @MessageBody() data: { question: Question },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = await this.roomsService.getRoomForSocket(client.id, client.data.roomCode);
+    const room = await this.roomsService.getRoomForSocket(
+      client.id,
+      client.data.roomCode,
+    );
     const role = this.roomsService.getPlayerRole(room, client.id);
-    if (!role || room.currentTurn !== role) throw new Error('Não é a vez deste jogador');
+    if (!role || room.currentTurn !== role)
+      throw new Error('Não é a vez deste jogador');
     const target = this.roomsService.getActiveOpponentGraph(room, role);
     if (!target) throw new Error('Grafo não encontrado');
     const answer = answerQuestion(target.properties, data.question);
-    const filterResult = this.roomsService.filterOpponentGraphs(room, role, data.question, answer);
+    const filterResult = this.roomsService.filterOpponentGraphs(
+      room,
+      role,
+      data.question,
+      answer,
+    );
     const updatedRoom = await this.roomsService.recordQuestion(room.code, {
       askedBy: role,
       question: data.question,
@@ -134,14 +161,20 @@ export class RoomsGateway implements OnGatewayDisconnect {
     @MessageBody() data: { guessedGraphId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = await this.roomsService.getRoomForSocket(client.id, client.data.roomCode);
+    const room = await this.roomsService.getRoomForSocket(
+      client.id,
+      client.data.roomCode,
+    );
     const role = this.roomsService.getPlayerRole(room, client.id);
-    if (!role || room.currentTurn !== role) throw new Error('Não é a vez deste jogador');
+    if (!role || room.currentTurn !== role)
+      throw new Error('Não é a vez deste jogador');
     const player = room.players[role === 'player1' ? 0 : 1];
     const opponent = room.players[role === 'player1' ? 1 : 0];
-    const target = room.players[role === 'player1' ? 0 : 1]?.remainingOpponentGraphIds.length === 1
-      ? this.roomsService.getOnlyRemainingOpponentGraph(room, role)
-      : this.roomsService.getActiveOpponentGraph(room, role);
+    const target =
+      room.players[role === 'player1' ? 0 : 1]?.remainingOpponentGraphIds
+        .length === 1
+        ? this.roomsService.getOnlyRemainingOpponentGraph(room, role)
+        : this.roomsService.getActiveOpponentGraph(room, role);
     if (!player || !opponent || !target) {
       throw new Error('Grafo não encontrado');
     }
@@ -167,18 +200,24 @@ export class RoomsGateway implements OnGatewayDisconnect {
 
   @SubscribeMessage(EVENTS.REMATCH)
   async handleRematch(@ConnectedSocket() client: Socket) {
-    const room = await this.roomsService.getRoomForSocket(client.id, client.data.roomCode);
+    const room = await this.roomsService.getRoomForSocket(
+      client.id,
+      client.data.roomCode,
+    );
     const role = this.roomsService.getPlayerRole(room, client.id);
     if (!role) throw new Error('Jogador não pertence à sala');
     const accepted = await this.roomsService.requestRematch(room.code, role);
     if (!accepted) {
-      this.server.to(room.code).emit(EVENTS.ROOM_UPDATED, { rematchRequestedBy: role });
+      this.server
+        .to(room.code)
+        .emit(EVENTS.ROOM_UPDATED, { rematchRequestedBy: role });
       return { accepted: false, status: 'WAITING_FOR_REMATCH' };
     }
-    const createHand = () => this.graphGenerator.generateHand().map((graph) => ({
-      graph,
-      properties: this.graphProperties.computeAll(graph),
-    }));
+    const createHand = () =>
+      this.graphGenerator.generateHand().map((graph) => ({
+        graph,
+        properties: this.graphProperties.computeAll(graph),
+      }));
     await this.roomsService.assignHands(room.code, createHand(), createHand());
     const restartedRoom = await this.roomsService.getRoom(room.code);
     for (const [index, player] of restartedRoom.players.entries()) {
@@ -196,7 +235,10 @@ export class RoomsGateway implements OnGatewayDisconnect {
 
   @SubscribeMessage(EVENTS.CLOSE_ROOM)
   async handleCloseRoom(@ConnectedSocket() client: Socket) {
-    const room = await this.roomsService.getRoomForSocket(client.id, client.data.roomCode);
+    const room = await this.roomsService.getRoomForSocket(
+      client.id,
+      client.data.roomCode,
+    );
     await this.roomsService.removeRoom(room.code);
     this.server.to(room.code).emit(EVENTS.ROOM_CLOSED);
     return { closed: true };
@@ -204,6 +246,9 @@ export class RoomsGateway implements OnGatewayDisconnect {
 
   async handleDisconnect(client: Socket): Promise<void> {
     const code = await this.roomsService.removePlayer(client.id);
-    if (code) this.server.to(code).emit(EVENTS.ROOM_UPDATED, { status: 'WAITING_FOR_PLAYER' });
+    if (code)
+      this.server
+        .to(code)
+        .emit(EVENTS.ROOM_UPDATED, { status: 'WAITING_FOR_PLAYER' });
   }
 }

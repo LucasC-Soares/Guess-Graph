@@ -60,10 +60,12 @@ const messages = {
     questionHasLeaf: 'Este grafo tem algum vértice folha (grau 1)?',
     questionHasTriangle: 'Este grafo tem algum triângulo?',
     questionIsComplete: 'Este grafo é completo?',
-    questionIsRegular: 'Este grafo é regular (todos os vértices com mesmo grau)?',
+    questionIsRegular:
+      'Este grafo é regular (todos os vértices com mesmo grau)?',
     questionHasEulerianCircuit: 'Este grafo tem um circuito euleriano?',
     questionMaxDegreeGreaterThan: 'O grau máximo é maior que {threshold}?',
-    questionEdgeCountGreaterThan: 'O número de arestas é maior que {threshold}?',
+    questionEdgeCountGreaterThan:
+      'O número de arestas é maior que {threshold}?',
     questionDiameterGreaterThan: 'O diâmetro é maior que {threshold}?',
   },
   en: {
@@ -119,14 +121,18 @@ const messages = {
     questionIsTree: 'Is this graph a tree?',
     questionHasBridge: 'Does this graph have a bridge?',
     questionHasArticulationPoint: 'Does this graph have an articulation point?',
-    questionHasIsolatedVertex: 'Does this graph have an isolated vertex (degree 0)?',
+    questionHasIsolatedVertex:
+      'Does this graph have an isolated vertex (degree 0)?',
     questionHasLeaf: 'Does this graph have a leaf vertex (degree 1)?',
     questionHasTriangle: 'Does this graph have a triangle?',
     questionIsComplete: 'Is this graph complete?',
-    questionIsRegular: 'Is this graph regular (all vertices have the same degree)?',
+    questionIsRegular:
+      'Is this graph regular (all vertices have the same degree)?',
     questionHasEulerianCircuit: 'Does this graph have an Eulerian circuit?',
-    questionMaxDegreeGreaterThan: 'Is the maximum degree greater than {threshold}?',
-    questionEdgeCountGreaterThan: 'Is the number of edges greater than {threshold}?',
+    questionMaxDegreeGreaterThan:
+      'Is the maximum degree greater than {threshold}?',
+    questionEdgeCountGreaterThan:
+      'Is the number of edges greater than {threshold}?',
     questionDiameterGreaterThan: 'Is the diameter greater than {threshold}?',
   },
 } as const;
@@ -143,18 +149,16 @@ const questionTranslationKeys: Record<QuestionType, TranslationKey> = {
   [QuestionType.HAS_CYCLE]: 'questionHasCycle',
   [QuestionType.IS_TREE]: 'questionIsTree',
   [QuestionType.HAS_BRIDGE]: 'questionHasBridge',
-  [QuestionType.HAS_ARTICULATION_POINT]: 'questionHasArticulationPoint',
-  [QuestionType.HAS_ISOLATED_VERTEX]: 'questionHasIsolatedVertex',
-  [QuestionType.HAS_LEAF]: 'questionHasLeaf',
-  [QuestionType.HAS_TRIANGLE]: 'questionHasTriangle',
-  [QuestionType.IS_COMPLETE]: 'questionIsComplete',
-  [QuestionType.IS_REGULAR]: 'questionIsRegular',
-  [QuestionType.HAS_EULERIAN_CIRCUIT]: 'questionHasEulerianCircuit',
   [QuestionType.MAX_DEGREE_GREATER_THAN]: 'questionMaxDegreeGreaterThan',
-  [QuestionType.EDGE_COUNT_GREATER_THAN]: 'questionEdgeCountGreaterThan',
-  [QuestionType.DIAMETER_GREATER_THAN]: 'questionDiameterGreaterThan',
 };
 
-export function translateQuestion(locale: Locale, type: QuestionType, threshold?: number): string {
-  return translate(locale, questionTranslationKeys[type]).replace('{threshold}', String(threshold ?? 'X'));
+export function translateQuestion(
+  locale: Locale,
+  type: QuestionType,
+  threshold?: number,
+): string {
+  return translate(locale, questionTranslationKeys[type]).replace(
+    '{threshold}',
+    String(threshold ?? 'X'),
+  );
 }

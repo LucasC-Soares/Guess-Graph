@@ -6,9 +6,12 @@ describe('GraphGeneratorService', () => {
     const hand = service.generateHand();
 
     expect(hand).toHaveLength(GraphGeneratorService.HAND_SIZE);
-    expect(hand.every(({ vertexCount }) => (
-      vertexCount >= GraphGeneratorService.MIN_HAND_VERTEX_COUNT
-      && vertexCount <= GraphGeneratorService.MAX_HAND_VERTEX_COUNT
-    ))).toBe(true);
+    expect(
+      hand.every(
+        ({ vertexCount }) =>
+          vertexCount >= GraphGeneratorService.MIN_HAND_VERTEX_COUNT &&
+          vertexCount <= GraphGeneratorService.MAX_HAND_VERTEX_COUNT,
+      ),
+    ).toBe(true);
   });
 });

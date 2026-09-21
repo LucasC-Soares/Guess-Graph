@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type React from 'react';
 import '@/styles/globals.css';
 import { I18nProvider } from '@/lib/i18n-context';
 import { QueryProvider } from '@/lib/query-provider';
