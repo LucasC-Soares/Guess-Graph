@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { GraphWithProperties } from '../graphs/interfaces/graph.interface';
-import { PlayerState, QuestionLogEntry, Room } from './interfaces/room.interface';
+import {
+  PlayerState,
+  QuestionLogEntry,
+  Room,
+} from './interfaces/room.interface';
 import { RedisRoomStore, RoomStore } from './redis-room-store';
 import { Question, answerQuestion } from '../questions/question-catalog';
 
@@ -17,7 +21,10 @@ export class RoomsService {
     while (true) {
       let code = '';
       for (let index = 0; index < codeLength; index += 1) {
-        code += this.codeAlphabet[Math.floor(Math.random() * this.codeAlphabet.length)];
+        code +=
+          this.codeAlphabet[
+            Math.floor(Math.random() * this.codeAlphabet.length)
+          ];
       }
       if (!(await this.roomStore.exists(code))) return code;
       codeLength += 1;
@@ -38,7 +45,11 @@ export class RoomsService {
     return code;
   }
 
-  async joinRoom(code: string, username: string, socketId: string): Promise<Room> {
+  async joinRoom(
+    code: string,
+    username: string,
+    socketId: string,
+  ): Promise<Room> {
     const room = await this.getRoom(code);
     if (room.status !== 'WAITING_FOR_PLAYER' || room.players[1]) {
       throw new Error('A sala já está cheia ou em andamento');
@@ -56,7 +67,11 @@ export class RoomsService {
     return room;
   }
 
-  async assignHands(code: string, player1Graphs: GraphWithProperties[], player2Graphs: GraphWithProperties[]): Promise<Room> {
+  async assignHands(
+    code: string,
+    player1Graphs: GraphWithProperties[],
+    player2Graphs: GraphWithProperties[],
+  ): Promise<Room> {
     const room = await this.getRoom(code);
     if (!room.players[0] || !room.players[1]) {
       throw new Error('A sala precisa de dois jogadores para receber as mãos');
@@ -65,8 +80,12 @@ export class RoomsService {
     room.players[1].hand = player2Graphs;
     room.players[0].activeOpponentGraphId = player2Graphs[0]?.graph.id;
     room.players[1].activeOpponentGraphId = player1Graphs[0]?.graph.id;
-    room.players[0].remainingOpponentGraphIds = player2Graphs.map(({ graph }) => graph.id);
-    room.players[1].remainingOpponentGraphIds = player1Graphs.map(({ graph }) => graph.id);
+    room.players[0].remainingOpponentGraphIds = player2Graphs.map(
+      ({ graph }) => graph.id,
+    );
+    room.players[1].remainingOpponentGraphIds = player1Graphs.map(
+      ({ graph }) => graph.id,
+    );
     await this.roomStore.set(room);
     return room;
   }
@@ -91,10 +110,15 @@ export class RoomsService {
 
     const remainingSet = new Set(player.remainingOpponentGraphIds);
     const eliminatedGraphIds = opponent.hand
-      .filter(({ graph, properties }) => remainingSet.has(graph.id) && answerQuestion(properties, question) !== answer)
+      .filter(
+        ({ graph, properties }) =>
+          remainingSet.has(graph.id) &&
+          answerQuestion(properties, question) !== answer,
+      )
       .map(({ graph }) => graph.id);
-    player.remainingOpponentGraphIds = player.remainingOpponentGraphIds
-      .filter((graphId) => !eliminatedGraphIds.includes(graphId));
+    player.remainingOpponentGraphIds = player.remainingOpponentGraphIds.filter(
+      (graphId) => !eliminatedGraphIds.includes(graphId),
+    );
 
     return {
       eliminatedGraphIds,
@@ -110,10 +134,13 @@ export class RoomsService {
     for (const code of await this.roomStore.listCodes()) {
       const room = await this.roomStore.get(code);
       if (!room) continue;
-      const playerIndex = room.players.findIndex((player) => player?.socketId === socketId);
+      const playerIndex = room.players.findIndex(
+        (player) => player?.socketId === socketId,
+      );
       if (playerIndex === -1) continue;
       room.players[playerIndex] = null;
-      if (!room.players[0] && !room.players[1]) await this.roomStore.delete(code);
+      if (!room.players[0] && !room.players[1])
+        await this.roomStore.delete(code);
       else {
         room.status = 'WAITING_FOR_PLAYER';
         await this.roomStore.set(room);
@@ -126,7 +153,8 @@ export class RoomsService {
   async getRoomForSocket(socketId: string, roomCode?: string): Promise<Room> {
     if (!roomCode) throw new Error('Socket não está associado a uma sala');
     const room = await this.getRoom(roomCode);
-    if (!this.getPlayerRole(room, socketId)) throw new Error('Socket não pertence à sala');
+    if (!this.getPlayerRole(room, socketId))
+      throw new Error('Socket não pertence à sala');
     return room;
   }
 
@@ -134,9 +162,15 @@ export class RoomsService {
     await this.roomStore.set(room);
   }
 
-  async requestRematch(code: string, role: 'player1' | 'player2'): Promise<boolean> {
+  async requestRematch(
+    code: string,
+    role: 'player1' | 'player2',
+  ): Promise<boolean> {
     const room = await this.getRoom(code);
-    if (room.status !== 'FINISHED') throw new Error('A revanche só pode ser solicitada após o fim da partida');
+    if (room.status !== 'FINISHED')
+      throw new Error(
+        'A revanche só pode ser solicitada após o fim da partida',
+      );
     if (!room.rematchVotes.includes(role)) room.rematchVotes.push(role);
     if (room.rematchVotes.length < 2) {
       await this.roomStore.set(room);
@@ -158,17 +192,28 @@ export class RoomsService {
     return true;
   }
 
-  getActiveOpponentGraph(room: Room, role: 'player1' | 'player2'): GraphWithProperties | undefined {
+  getActiveOpponentGraph(
+    room: Room,
+    role: 'player1' | 'player2',
+  ): GraphWithProperties | undefined {
     const player = room.players[role === 'player1' ? 0 : 1];
     const opponent = room.players[role === 'player1' ? 1 : 0];
-    return opponent?.hand.find(({ graph }) => graph.id === player?.activeOpponentGraphId);
+    return opponent?.hand.find(
+      ({ graph }) => graph.id === player?.activeOpponentGraphId,
+    );
   }
 
-  getOnlyRemainingOpponentGraph(room: Room, role: 'player1' | 'player2'): GraphWithProperties | undefined {
+  getOnlyRemainingOpponentGraph(
+    room: Room,
+    role: 'player1' | 'player2',
+  ): GraphWithProperties | undefined {
     const player = room.players[role === 'player1' ? 0 : 1];
     const opponent = room.players[role === 'player1' ? 1 : 0];
-    if (!player || player.remainingOpponentGraphIds.length !== 1) return undefined;
-    return opponent?.hand.find(({ graph }) => graph.id === player.remainingOpponentGraphIds[0]);
+    if (!player || player.remainingOpponentGraphIds.length !== 1)
+      return undefined;
+    return opponent?.hand.find(
+      ({ graph }) => graph.id === player.remainingOpponentGraphIds[0],
+    );
   }
 
   advanceActiveOpponentGraph(room: Room, role: 'player1' | 'player2'): void {
@@ -180,7 +225,10 @@ export class RoomsService {
       .find((graphId) => !player.guessedGraphIds.includes(graphId));
   }
 
-  getPlayerRole(room: Room, socketId: string): 'player1' | 'player2' | undefined {
+  getPlayerRole(
+    room: Room,
+    socketId: string,
+  ): 'player1' | 'player2' | undefined {
     if (room.players[0]?.socketId === socketId) return 'player1';
     if (room.players[1]?.socketId === socketId) return 'player2';
     return undefined;
@@ -202,5 +250,4 @@ export class RoomsService {
       guessedGraphIds: [],
     };
   }
-
 }

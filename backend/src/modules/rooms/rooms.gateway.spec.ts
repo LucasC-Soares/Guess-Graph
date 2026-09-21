@@ -23,32 +23,39 @@ describe('RoomsGateway', () => {
   let server: { to: jest.Mock };
   let rooms: Map<string, Room>;
 
-  const socket = (id: string) => ({
-    id,
-    join: jest.fn().mockResolvedValue(undefined),
-    data: {},
-  }) as unknown as Socket;
+  const socket = (id: string) =>
+    ({
+      id,
+      join: jest.fn().mockResolvedValue(undefined),
+      data: {},
+    }) as unknown as Socket;
 
   beforeEach(() => {
     rooms = new Map();
     const store: RoomStore = {
       exists: async (code) => rooms.has(code),
       get: async (code) => rooms.get(code),
-      set: async (room) => { rooms.set(room.code, room); },
-      delete: async (code) => { rooms.delete(code); },
+      set: async (room) => {
+        rooms.set(room.code, room);
+      },
+      delete: async (code) => {
+        rooms.delete(code);
+      },
       listCodes: async () => [...rooms.keys()],
     };
     roomsService = new RoomsService(store);
     let generatedHand = 0;
     const graphGenerator = {
-      generateHand: jest.fn().mockImplementation(() => Array.from({ length: 10 }, (_value, index) => ({
-        id: `graph-${generatedHand}-${index}`,
-        vertexCount: 2,
-        edges: [[0, 1]],
-      })).map((graph) => {
-        generatedHand += 1;
-        return graph;
-      })),
+      generateHand: jest.fn().mockImplementation(() =>
+        Array.from({ length: 10 }, (_value, index) => ({
+          id: `graph-${generatedHand}-${index}`,
+          vertexCount: 2,
+          edges: [[0, 1]],
+        })).map((graph) => {
+          generatedHand += 1;
+          return graph;
+        }),
+      ),
     } as unknown as GraphGeneratorService;
     const propertiesService = {
       computeAll: jest.fn().mockReturnValue(graphProperties),
@@ -62,7 +69,10 @@ describe('RoomsGateway', () => {
   it('sends public opponent graphs without private properties', async () => {
     const host = socket('socket-1');
     const guest = socket('socket-2');
-    const { code } = await gateway.handleCreateRoom({ username: 'Alice' }, host);
+    const { code } = await gateway.handleCreateRoom(
+      { username: 'Alice' },
+      host,
+    );
     await gateway.handleJoinRoom({ code, username: 'Bob' }, guest);
 
     expect(emit).toHaveBeenCalledTimes(2);
@@ -76,7 +86,10 @@ describe('RoomsGateway', () => {
   it('answers a question using the room associated with the socket', async () => {
     const host = socket('socket-1');
     const guest = socket('socket-2');
-    const { code } = await gateway.handleCreateRoom({ username: 'Alice' }, host);
+    const { code } = await gateway.handleCreateRoom(
+      { username: 'Alice' },
+      host,
+    );
     await gateway.handleJoinRoom({ code, username: 'Bob' }, guest);
     emit.mockClear();
     const room = await roomsService.getRoom(code);
@@ -85,23 +98,29 @@ describe('RoomsGateway', () => {
       host,
     );
 
-    expect(result).toEqual(expect.objectContaining({
-      answer: true,
-      eliminatedGraphIds: [],
-      remainingGraphIds: expect.any(Array),
-      remainingCount: 10,
-      finished: false,
-      currentTurn: 'player2',
-    }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        answer: true,
+        eliminatedGraphIds: [],
+        remainingGraphIds: expect.any(Array),
+        remainingCount: 10,
+        finished: false,
+        currentTurn: 'player2',
+      }),
+    );
     expect((await roomsService.getRoom(code)).status).toBe('IN_PROGRESS');
     expect(emit).not.toHaveBeenCalledWith('game:over', expect.anything());
-    expect(emit).toHaveBeenCalledWith('game:question-answered', expect.objectContaining({
-      question: { type: QuestionType.IS_TREE },
-      answer: true,
-      currentTurn: 'player2',
-    }));
+    expect(emit).toHaveBeenCalledWith(
+      'game:question-answered',
+      expect.objectContaining({
+        question: { type: QuestionType.IS_TREE },
+        answer: true,
+        currentTurn: 'player2',
+      }),
+    );
 
-    const guessedGraphId = (await roomsService.getRoom(code)).players[0]!.hand[0].graph.id;
+    const guessedGraphId = (await roomsService.getRoom(code)).players[0]!
+      .hand[0].graph.id;
     const guess = await gateway.handleMakeGuess({ guessedGraphId }, guest);
     expect(guess).toMatchObject({ correct: true, finished: true });
     expect((await roomsService.getRoom(code)).status).toBe('FINISHED');
@@ -110,13 +129,19 @@ describe('RoomsGateway', () => {
   it('ends the game with the opponent as winner after an incorrect guess', async () => {
     const host = socket('socket-1');
     const guest = socket('socket-2');
-    const { code } = await gateway.handleCreateRoom({ username: 'Alice' }, host);
+    const { code } = await gateway.handleCreateRoom(
+      { username: 'Alice' },
+      host,
+    );
     await gateway.handleJoinRoom({ code, username: 'Bob' }, guest);
     emit.mockClear();
 
     const room = await roomsService.getRoom(code);
     const actualGraphId = room.players[1]!.hand[0].graph.id;
-    const result = await gateway.handleMakeGuess({ guessedGraphId: `${actualGraphId}-wrong` }, host);
+    const result = await gateway.handleMakeGuess(
+      { guessedGraphId: `${actualGraphId}-wrong` },
+      host,
+    );
 
     expect(result).toEqual({ correct: false, finished: true, score: 0 });
     expect((await roomsService.getRoom(code)).status).toBe('FINISHED');

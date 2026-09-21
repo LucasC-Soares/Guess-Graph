@@ -12,7 +12,9 @@ export interface RoomStore {
 
 @Injectable()
 export class RedisRoomStore implements RoomStore, OnModuleDestroy {
-  private readonly redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379');
+  private readonly redis = new Redis(
+    process.env.REDIS_URL ?? 'redis://localhost:6379',
+  );
   private readonly keyPrefix = 'guess-graph:room:';
 
   async exists(code: string): Promise<boolean> {
@@ -36,7 +38,13 @@ export class RedisRoomStore implements RoomStore, OnModuleDestroy {
     const codes: string[] = [];
     let cursor = '0';
     do {
-      const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', `${this.keyPrefix}*`, 'COUNT', 100);
+      const [nextCursor, keys] = await this.redis.scan(
+        cursor,
+        'MATCH',
+        `${this.keyPrefix}*`,
+        'COUNT',
+        100,
+      );
       cursor = nextCursor;
       codes.push(...keys.map((key) => key.slice(this.keyPrefix.length)));
     } while (cursor !== '0');

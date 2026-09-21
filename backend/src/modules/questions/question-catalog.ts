@@ -1,4 +1,4 @@
-import { Graph, GraphProperties } from '../graphs/interfaces/graph.interface';
+import { GraphProperties } from '../graphs/interfaces/graph.interface';
 
 /**
  * Perguntas de sim/não que os jogadores podem fazer. Fixas de propósito:
@@ -25,7 +25,10 @@ export interface Question {
  * correta (sim/não). Essa função é a "verdade" do jogo — nunca deixe o
  * cliente calcular isso sozinho.
  */
-export function answerQuestion(properties: GraphProperties, question: Question): boolean {
+export function answerQuestion(
+  properties: GraphProperties,
+  question: Question,
+): boolean {
   switch (question.type) {
     case QuestionType.IS_CONNECTED:
       return properties.isConnected;

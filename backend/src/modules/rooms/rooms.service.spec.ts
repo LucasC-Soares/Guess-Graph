@@ -12,8 +12,12 @@ describe('RoomsService', () => {
     const store: RoomStore = {
       exists: async (code) => rooms.has(code),
       get: async (code) => rooms.get(code),
-      set: async (room) => { rooms.set(room.code, room); },
-      delete: async (code) => { rooms.delete(code); },
+      set: async (room) => {
+        rooms.set(room.code, room);
+      },
+      delete: async (code) => {
+        rooms.delete(code);
+      },
       listCodes: async () => [...rooms.keys()],
     };
     service = new RoomsService(store);
@@ -24,7 +28,10 @@ describe('RoomsService', () => {
     const room = await service.getRoom(code);
     expect(code).toMatch(/^[A-Z2-9]{5}$/);
     expect(room.status).toBe('WAITING_FOR_PLAYER');
-    expect(room.players[0]).toMatchObject({ username: 'Alice', socketId: 'socket-1' });
+    expect(room.players[0]).toMatchObject({
+      username: 'Alice',
+      socketId: 'socket-1',
+    });
     expect(room.players[1]).toBeNull();
   });
 
@@ -38,21 +45,28 @@ describe('RoomsService', () => {
   });
 
   it('rejects a missing username without throwing a TypeError', async () => {
-    await expect(service.createRoom(undefined as unknown as string, 'socket-1'))
-      .rejects.toThrow('Nome de usuário é obrigatório');
+    await expect(
+      service.createRoom(undefined as unknown as string, 'socket-1'),
+    ).rejects.toThrow('Nome de usuário é obrigatório');
   });
 
   it('joins a room once and rejects a third player', async () => {
     const code = await service.createRoom('Alice', 'socket-1');
     await service.joinRoom(code, 'Bob', 'socket-2');
     expect((await service.getRoom(code)).status).toBe('IN_PROGRESS');
-    await expect(service.joinRoom(code, 'Carol', 'socket-3')).rejects.toThrow('cheia');
+    await expect(service.joinRoom(code, 'Carol', 'socket-3')).rejects.toThrow(
+      'cheia',
+    );
   });
 
   it('assigns hands and alternates the turn when recording a question', async () => {
     const code = await service.createRoom('Alice', 'socket-1');
     await service.joinRoom(code, 'Bob', 'socket-2');
-    const graph = { id: 'graph-1', vertexCount: 2, edges: [[0, 1]] as [number, number][] };
+    const graph = {
+      id: 'graph-1',
+      vertexCount: 2,
+      edges: [[0, 1]] as [number, number][],
+    };
     const properties = {
       isConnected: true,
       isBipartite: true,

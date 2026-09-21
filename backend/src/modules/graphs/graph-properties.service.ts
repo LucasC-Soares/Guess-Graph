@@ -7,7 +7,6 @@ import { Graph, GraphProperties } from './interfaces/graph.interface';
 @Injectable()
 export class GraphPropertiesService {
   computeAll(graph: Graph): GraphProperties {
-
     const adj: number[][] = Array.from({ length: graph.vertexCount }, () => []);
     for (const [u, v] of graph.edges) {
       adj[u].push(v);
@@ -31,7 +30,7 @@ export class GraphPropertiesService {
   }
   /** BFS/DFS simples a partir do vértice 0, checando se visita todos. */
   private checkConnected(graph: Graph, adj: number[][]): boolean {
-    if(graph.vertexCount <= 1) return true;
+    if (graph.vertexCount <= 1) return true;
 
     function dfs(v: number, visited: boolean[], adj: number[][]) {
       visited[v] = true;
@@ -45,12 +44,12 @@ export class GraphPropertiesService {
     const visited: boolean[] = Array(graph.vertexCount).fill(false);
     dfs(0, visited, adj);
 
-    return visited.every(v => v);
+    return visited.every((v) => v);
   }
 
   /** 2-coloração via BFS/DFS: bipartido sse não há aresta entre vértices de mesma cor. */
   private checkBipartite(graph: Graph, adj: number[][]): boolean {
-    if(graph.vertexCount <= 1) return true;
+    if (graph.vertexCount <= 1) return true;
 
     function bfs(start: number, colors: number[], adj: number[][]): boolean {
       const queue: number[] = [start];
@@ -87,9 +86,14 @@ export class GraphPropertiesService {
 
   /** DFS com detecção de aresta de retorno (back edge) em grafo não-direcionado. */
   private checkHasCycle(graph: Graph, adj: number[][]): boolean {
-    if(graph.vertexCount <= 1) return false;
+    if (graph.vertexCount <= 1) return false;
 
-    function dfs(v: number, parent: number, visited: boolean[], adj: number[][]): boolean {
+    function dfs(
+      v: number,
+      parent: number,
+      visited: boolean[],
+      adj: number[][],
+    ): boolean {
       visited[v] = true;
       for (const neighbor of adj[v]) {
         if (!visited[neighbor]) {
@@ -118,9 +122,17 @@ export class GraphPropertiesService {
 
   /** Ponte: aresta cuja remoção desconecta o grafo (algoritmo de Tarjan, low-link). */
   private checkHasBridge(graph: Graph, adj: number[][]): boolean {
-    if(graph.vertexCount <= 1) return false;
+    if (graph.vertexCount <= 1) return false;
 
-    function dfs(v: number, parent: number, visited: boolean[], tin: number[], low: number[], timer: { value: number }, adj: number[][]): boolean {
+    function dfs(
+      v: number,
+      parent: number,
+      visited: boolean[],
+      tin: number[],
+      low: number[],
+      timer: { value: number },
+      adj: number[][],
+    ): boolean {
       visited[v] = true;
       tin[v] = low[v] = timer.value++;
       for (const neighbor of adj[v]) {
@@ -157,7 +169,7 @@ export class GraphPropertiesService {
   }
 
   private computeMaxDegree(graph: Graph): number {
-    if(graph.vertexCount <= 1) return 0;
+    if (graph.vertexCount <= 1) return 0;
 
     const degree: number[] = Array(graph.vertexCount).fill(0);
     for (const [u, v] of graph.edges) {
@@ -169,7 +181,7 @@ export class GraphPropertiesService {
   }
 
   private computeMinDegree(graph: Graph): number {
-    if(graph.vertexCount <= 1) return 0;
+    if (graph.vertexCount <= 1) return 0;
 
     const degree: number[] = Array(graph.vertexCount).fill(0);
     for (const [u, v] of graph.edges) {

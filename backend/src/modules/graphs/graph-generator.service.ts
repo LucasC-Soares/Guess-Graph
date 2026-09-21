@@ -15,12 +15,14 @@ export class GraphGeneratorService {
 
   generateHand(): Graph[] {
     return Array.from({ length: GraphGeneratorService.HAND_SIZE }, () => {
-      const vertexCount = GraphGeneratorService.MIN_HAND_VERTEX_COUNT
-        + Math.floor(Math.random() * (
-          GraphGeneratorService.MAX_HAND_VERTEX_COUNT
-          - GraphGeneratorService.MIN_HAND_VERTEX_COUNT
-          + 1
-        ));
+      const vertexCount =
+        GraphGeneratorService.MIN_HAND_VERTEX_COUNT +
+        Math.floor(
+          Math.random() *
+            (GraphGeneratorService.MAX_HAND_VERTEX_COUNT -
+              GraphGeneratorService.MIN_HAND_VERTEX_COUNT +
+              1),
+        );
       return this.generateBatch(1, vertexCount)[0];
     });
   }
@@ -29,7 +31,12 @@ export class GraphGeneratorService {
    * Gera `count` grafos aleatórios com `vertexCount` vértices cada.
    */
   generateBatch(count: number, vertexCount: number): Graph[] {
-    if (!Number.isInteger(count) || count < 0 || !Number.isInteger(vertexCount) || vertexCount < 1) {
+    if (
+      !Number.isInteger(count) ||
+      count < 0 ||
+      !Number.isInteger(vertexCount) ||
+      vertexCount < 1
+    ) {
       throw new Error('count e vertexCount precisam ser inteiros válidos');
     }
     return Array.from({ length: count }, () => {
