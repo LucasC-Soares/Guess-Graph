@@ -131,11 +131,3 @@ jobs:
           file: backend/Dockerfile
           push: false
           tags: guess-graph-backend:${{ github.sha }}
-
-  deploy:
-    name: Deploy placeholder
-    if: ${{ always() && needs.build.result == 'success' }}
-    needs: [build]
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Deploy stage configured. Add deployment commands as needed."
