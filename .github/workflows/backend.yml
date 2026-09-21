@@ -9,6 +9,10 @@ on:
       - ".github/workflows/backend.yml"
       - ".github/workflows/codeql.yml"
 
+permissions:
+  contents: read
+  pull-requests: write
+
 concurrency:
   group: backend-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -76,12 +80,44 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci --include=dev
-      - run: npm run test:cov -- --ci
+      - run: mkdir -p test-results
+      - run: npm run test:cov -- --ci --reporters=default --reporters=jest-junit
+        env:
+          JEST_JUNIT_OUTPUT_DIR: test-results
+          JEST_JUNIT_OUTPUT_NAME: junit.xml
+      - name: Publish test results
+        if: always()
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: backend/test-results/junit.xml
+          check_name: Backend unit tests
+          detailed_summary: true
+          include_passed: true
+          comment: true
+          fail_on_failure: true
+      - name: Create coverage summary
+        if: always()
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: backend/coverage/lcov.info
+          format: markdown
+          output: both
+          badge: true
+          fail_below_min: true
+          thresholds: '60 80'
+      - name: Publish coverage summary
+        if: always()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: backend-coverage
+          path: code-coverage-results.md
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: backend-coverage
-          path: backend/coverage
+          name: backend-test-results
+          path: |
+            backend/coverage
+            backend/test-results
           retention-days: 7
 
   docker:
