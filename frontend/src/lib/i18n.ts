@@ -149,16 +149,7 @@ const questionTranslationKeys: Record<QuestionType, TranslationKey> = {
   [QuestionType.HAS_CYCLE]: 'questionHasCycle',
   [QuestionType.IS_TREE]: 'questionIsTree',
   [QuestionType.HAS_BRIDGE]: 'questionHasBridge',
-  [QuestionType.HAS_ARTICULATION_POINT]: 'questionHasArticulationPoint',
-  [QuestionType.HAS_ISOLATED_VERTEX]: 'questionHasIsolatedVertex',
-  [QuestionType.HAS_LEAF]: 'questionHasLeaf',
-  [QuestionType.HAS_TRIANGLE]: 'questionHasTriangle',
-  [QuestionType.IS_COMPLETE]: 'questionIsComplete',
-  [QuestionType.IS_REGULAR]: 'questionIsRegular',
-  [QuestionType.HAS_EULERIAN_CIRCUIT]: 'questionHasEulerianCircuit',
   [QuestionType.MAX_DEGREE_GREATER_THAN]: 'questionMaxDegreeGreaterThan',
-  [QuestionType.EDGE_COUNT_GREATER_THAN]: 'questionEdgeCountGreaterThan',
-  [QuestionType.DIAMETER_GREATER_THAN]: 'questionDiameterGreaterThan',
 };
 
 export function translateQuestion(
