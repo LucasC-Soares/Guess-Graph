@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSocket } from '@/lib/socket-client';
+import { consumePendingRoomState } from '@/lib/pending-room-state';
 import { SOCKET_EVENTS } from '@/constants/config';
 import { QuestionAnsweredDTO, RoomStateDTO } from '@/types/room';
-import { consumePendingRoomState } from '@/features/room/api/room-socket-api';
 
 export const roomQueryKey = (roomCode: string) => ['room', roomCode] as const;
 export const gameOverQueryKey = (roomCode: string) => ['room', roomCode, 'game-over'] as const;

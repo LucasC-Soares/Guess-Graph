@@ -1,10 +1,9 @@
 import { getSocket } from '@/lib/socket-client';
+import { savePendingRoomState } from '@/lib/pending-room-state';
 import { SOCKET_EVENTS } from '@/constants/config';
 import { RoomStateDTO } from '@/types/room';
 
 const ROOM_SESSION_KEY = 'guess-graph:room-session';
-
-let pendingRoomState: RoomStateDTO | null = null;
 
 export function saveRoomSession(code: string, username: string, role: 'host' | 'guest' = 'guest'): void {
   const entry = { code: code.toUpperCase(), username, role };
@@ -23,12 +22,6 @@ export function restoreRoomSession(): { code: string; username: string; role: 'h
 
 export function clearRoomSession(): void {
   localStorage.removeItem(ROOM_SESSION_KEY);
-}
-
-export function consumePendingRoomState(): RoomStateDTO | null {
-  const state = pendingRoomState;
-  pendingRoomState = null;
-  return state;
 }
 
 // TODO: emit CREATE_ROOM e aguardar ack do servidor com { code }.
@@ -55,19 +48,19 @@ export function joinRoom(code: string, username: string): Promise<{ code: string
     const socket = getSocket();
     const request = () => socket.emit(SOCKET_EVENTS.JOIN_ROOM, { code, username }, (response: { code: string; status: string; opponentHand?: RoomStateDTO['opponentHand']; currentTurn?: RoomStateDTO['currentTurn']; yourRole?: RoomStateDTO['yourRole'] }) => {
       if (response?.status === 'IN_PROGRESS') {
-        pendingRoomState = {
+        savePendingRoomState({
           status: response.status,
           opponentHand: response.opponentHand ?? [],
           currentTurn: response.currentTurn ?? 'player1',
           yourRole: response.yourRole ?? 'player1',
           questionLog: [],
-        };
+        });
       }
       saveRoomSession(response.code, username, 'guest');
       resolve(response);
     });
     socket.once(SOCKET_EVENTS.OPPONENT_JOINED, (state: RoomStateDTO) => {
-      pendingRoomState = state;
+      savePendingRoomState(state);
     });
     if (socket.connected) request();
     else {
