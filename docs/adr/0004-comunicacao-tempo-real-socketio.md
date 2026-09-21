@@ -7,7 +7,7 @@
 
 Criar sala, entrar em partida, responder perguntas e atualizar turnos são eventos interativos entre dois jogadores. Polling introduziria atraso e complexidade desnecessária.
 
-## Decisao
+## Decisão
 
 Usar Socket.IO entre frontend e backend. Cada ação tem um evento nomeado, como `room:create`, `room:join`, `game:ask-question` e `game:make-guess`. O servidor emite eventos de estado, respostas e fim de jogo.
 
@@ -17,14 +17,14 @@ No frontend, existe um único socket por sessão. Operações de criação, entr
 
 ## Alternativas consideradas
 
-- REST com polling: mais simples para requisicoes isoladas, mas inadequado para atualizacoes imediatas nos dois clientes.
-- WebSocket puro: teria menos abstracao, mas exigiria implementar manualmente recursos que Socket.IO ja oferece, como rooms e acknowledgements.
+- REST com polling: mais simples para requisições isoladas, mas inadequado para atualizações imediatas nos dois clientes.
+- WebSocket puro: teria menos abstração, mas exigiria implementar manualmente recursos que Socket.IO já oferece, como rooms e acknowledgements.
 
-## Consequencias
+## Consequências
 
 - O servidor pode emitir a mesma mudança para os dois jogadores.
-- Rooms do Socket.IO mapeiam naturalmente para o codigo da sala.
-- O frontend precisa remover listeners ao desmontar hooks para evitar duplicacao.
+- Rooms do Socket.IO mapeiam naturalmente para o código da sala.
+- O frontend precisa remover listeners ao desmontar hooks para evitar duplicação.
 - O contrato de eventos passa a ser uma API pública entre as duas aplicações.
 - O cache do React Query e atualizado diretamente pelos eventos recebidos, mantendo a tela sincronizada sem polling.
-- Falhas ou ausencia de acknowledgement rejeitam a operacao no frontend e podem ser exibidas como erro de acao.
+- Falhas ou ausência de acknowledgement rejeitam a operação no frontend e podem ser exibidas como erro de ação.

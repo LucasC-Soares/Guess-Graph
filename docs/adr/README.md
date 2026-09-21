@@ -22,7 +22,7 @@ Este diretório registra decisões arquiteturais do Guess Graph. Cada ADR docume
 
 ## Como adicionar um ADR
 
-1. Use o proximo numero sequencial.
+1. Use o próximo número sequencial.
 2. Escreva o contexto antes da decisão.
 3. Registre alternativas relevantes e consequências.
 4. Atualize este índice.
