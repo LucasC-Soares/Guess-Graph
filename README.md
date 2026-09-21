@@ -1,7 +1,7 @@
 # Guess Graph
 
-As decisoes arquiteturais do projeto estao documentadas em [docs/adr/README.md](docs/adr/README.md).
-O contrato da API HTTP e dos eventos Socket.IO esta em [docs/api.md](docs/api.md).
+As decisões arquiteturais do projeto estão documentadas em [docs/adr/README.md](docs/adr/README.md).
+O contrato da API HTTP e dos eventos Socket.IO está em [docs/api.md](docs/api.md).
 
 Jogo 1x1 onde cada jogador tenta adivinhar as propriedades estruturais dos
 grafos do oponente através de perguntas de sim/não.
@@ -32,48 +32,31 @@ frontend/src/
 └── types/          tipos compartilhados, espelhando o backend
 ```
 
-## Ordem sugerida de desenvolvimento
+### Estrutura do backend (NestJS + Socket.IO)
 
-1. **`backend/src/modules/graphs/graph-properties.service.ts`**
-   Implemente as checagens de propriedade primeiro, isoladas de qualquer
-   coisa de jogo/socket. São os mesmos algoritmos do seu caderno de time
-   (BFS/DFS, 2-coloração, Tarjan pra pontes) — reaproveite, só adapte a
-   entrada/saída. Rode os testes em `graph-properties.service.spec.ts`.
-
-2. **`graph-generator.service.ts`**
-   Gerador de grafos aleatórios. Teste manualmente: gere uns 20 grafos,
-   rode o `GraphPropertiesService` em cada um, e confira se a distribuição
-   de propriedades faz sentido (não adianta gerar só grafos conexos, por
-   exemplo — o jogo fica sem graça).
-
-3. **`modules/questions/question-catalog.ts`**
-   Já vem praticamente pronto — é só o "árbitro" das perguntas fixas.
-   Confira se cobre as perguntas que você quer no MVP e adicione mais
-   `QuestionType` se quiser (lembre de espelhar no frontend em
-   `entities/graph/model/types.ts`).
-
-4. **`modules/rooms/rooms.service.ts`**
-   Estado efêmero da sala no Redis. Implemente `createRoom`, `joinRoom`,
-   `assignHands`, `recordQuestion`. Teste isso separado do gateway
-   (testes unitários simples, sem precisar de socket real).
-
-5. **`modules/rooms/rooms.gateway.ts`**
-   Conecta tudo via eventos WebSocket. Deixe pra último — é onde mais bugs
-   de integração aparecem, então só faz sentido depois que as peças de
-   baixo já estão testadas isoladamente.
-
-6. **Frontend**: `lib/socket-client` → `features/room` (criar/entrar em
-   sala) → `features/game` (o hook `use-room-state` primeiro, depois
-   `graph-visualization`, `ask-question-panel`, `question-log`, e por
-   fim o `game-board` que compõe tudo). Pro MVP, um SVG simples com
-   vértices em círculo já é suficiente — nada de lib de força-dirigida ainda.
-
-## Checkpoints
-
-Todo arquivo com lógica tem `// TODO:` marcando o que falta e uma pista de
-como implementar. Comece pelo `graph-properties.service.ts` — ele é
-puro algoritmo, sem NestJS/socket no meio, então é o mais fácil de validar
-isoladamente antes de subir a stack toda.
+```
+backend/src/
+├── app.module.ts          módulo raiz, configura o ambiente e importa os módulos
+├── main.ts                bootstrap do NestJS, habilita CORS e WebSockets
+└── modules/
+	├── graphs/
+	│   ├── graphs.module.ts
+	│   ├── graph-generator.service.ts
+	│   ├── graph-properties.service.ts
+	│   ├── interfaces/
+	│   │   └── graph.interface.ts
+	│   └── *.spec.ts       testes dos serviços de grafos
+	├── questions/
+	│   └── question-catalog.ts  catálogo e regras das perguntas
+	└── rooms/
+		├── rooms.module.ts
+		├── rooms.gateway.ts     gateway do Socket.IO e eventos da partida
+		├── rooms.service.ts     serviço de salas e estado dos jogadores
+		├── redis-room-store.ts  persistência efêmera das salas no Redis
+		├── interfaces/
+		│   └── room.interface.ts
+		└── *.spec.ts             testes do gateway e do serviço de salas
+```
 
 ## Docker Compose
 
@@ -84,8 +67,7 @@ docker compose up --build
 ```
 
 Frontend: http://localhost:3000. Backend e Socket.IO: http://localhost:3001.
-O Redis é efêmero e não usa volume persistente. Os builds usam cache local em
-`.docker-cache/`, ignorado pelos contextos Docker.
+O Redis é efêmero e não usa volume persistente.
 
 Para usar os estágios de desenvolvimento:
 

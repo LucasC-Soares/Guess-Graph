@@ -22,6 +22,6 @@ Depois de criar ou entrar em uma sala, o gateway grava o código em `socket.data
 ## Consequências
 
 - Salas podem ser lidas por várias instâncias do backend e sobrevivem ao reinício de uma instância enquanto o Redis estiver ativo.
-- O Redis passa a ser uma dependencia de infraestrutura local e de deploy.
+- O Redis passa a ser uma dependência de infraestrutura local e de deploy.
 - O estado é serializado a cada mutação; operações transacionais ou TTL podem ser adicionadas se a concorrência e a limpeza automática exigirem.
 - O cliente não precisa repetir o código da sala em cada ação nem enviar dados privados do grafo.

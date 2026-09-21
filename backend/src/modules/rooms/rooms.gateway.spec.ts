@@ -122,6 +122,7 @@ describe('RoomsGateway', () => {
     expect((await roomsService.getRoom(code)).status).toBe('FINISHED');
     expect(emit).toHaveBeenCalledWith('game:over', {
       winner: 'player2',
+      winnerName: 'Bob',
       score: 0,
       correct: false,
     });

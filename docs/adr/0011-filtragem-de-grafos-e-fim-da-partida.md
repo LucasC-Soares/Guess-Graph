@@ -5,7 +5,7 @@
 
 ## Contexto
 
-O jogador precisa visualizar os grafos do adversário para formular perguntas. A estrutura pública do grafo, como vértices e arestas, pode ser enviada, mas as propriedades calculadas pelo servidor devem permanecer privadas. O protocolo também precisa informar quais candidatos foram descartados por uma pergunta; retornar apenas `answer` deixa o cliente sem como atualizar o tabuleiro.
+O jogador precisa visualizar os grafos do adversário para formular perguntas. A estrutura pública do grafo, como vértices e arestas, pode ser enviada, mas as propriedades calculadas pelo servidor devem permanecer privadas. O protocolo também precisa informar quais candidatos foram descartados por uma pergunta; retornar apenas `answer` deixa o cliente sem saber como atualizar o tabuleiro.
 
 ## Decisão
 

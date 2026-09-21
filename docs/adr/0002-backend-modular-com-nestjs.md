@@ -15,7 +15,7 @@ Usar NestJS como runtime do backend e separar o domínio em módulos `graphs`, `
 - `questions` define o catálogo e o árbitro das perguntas.
 - `rooms` possui estado da partida e gateway Socket.IO.
 
-Servicos NestJS sao injetados no gateway em vez de o gateway construir dependencias manualmente.
+Servicos NestJS sao injetados no gateway em vez de o gateway construir dependências manualmente.
 
 ## Alternativas consideradas
 

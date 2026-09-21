@@ -153,9 +153,11 @@ export class RoomsGateway implements OnGatewayDisconnect {
     }
     const finished = true;
     const winner = correct ? role : role === 'player1' ? 'player2' : 'player1';
+    const winnerPlayer = correct ? player : opponent;
     room.status = 'FINISHED';
     this.server.to(room.code).emit(EVENTS.GAME_OVER, {
       winner,
+      winnerName: winnerPlayer.username,
       score: correct ? player.score : opponent.score,
       correct,
     });

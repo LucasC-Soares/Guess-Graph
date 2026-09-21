@@ -7,7 +7,7 @@
 
 O jogo pergunta propriedades estruturais de grafos pequenos. A representação precisa ser simples para gerar, serializar e visualizar, e os cálculos precisam ser deterministas e independentes do transporte.
 
-## Decisao
+## Decisão
 
 Representar cada grafo como não direcionado, com vértices inteiros de `0` a `vertexCount - 1` e arestas como pares `[u, v]`. Cada grafo recebe um `id` estável.
 
@@ -21,8 +21,8 @@ O gerador usa grafos aleatórios simples e a partida enriquece cada grafo com su
 - Cálculo no frontend: conflitaria com a autoridade do servidor.
 - Biblioteca externa de grafos: adicionaria dependência para um domínio pequeno e bem delimitado.
 
-## Consequencias
+## Consequências
 
-- O modelo e compacto e facil de enviar por Socket.IO.
+- O modelo é compacto e fácil de enviar por Socket.IO.
 - Os algoritmos podem ser testados com grafos clássicos pequenos.
 - O gerador aleatório precisa de testes de invariantes e, futuramente, de controles melhores de variedade.

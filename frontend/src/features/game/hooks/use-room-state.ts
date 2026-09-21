@@ -18,7 +18,7 @@ export function useRoomState(roomCode: string) {
   const [roomClosed, setRoomClosed] = useState(false);
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: roomQueryKey(roomCode), queryFn: async () => null as RoomStateDTO | null, enabled: false });
-  const gameOverQuery = useQuery<{ winner: string; correct?: boolean } | null>({ queryKey: gameOverQueryKey(roomCode), queryFn: async () => null, enabled: false });
+  const gameOverQuery = useQuery<{ winner: 'player1' | 'player2'; winnerName: string; correct?: boolean } | null>({ queryKey: gameOverQueryKey(roomCode), queryFn: async () => null, enabled: false });
 
   useEffect(() => {
     const socket = getSocket();
@@ -40,7 +40,7 @@ export function useRoomState(roomCode: string) {
       ...emptyRoom(), ...current, currentTurn: event.currentTurn,
       questionLog: [...(current?.questionLog ?? []), { askedBy: event.askedBy, questionLabel: event.question.type, questionParams: event.question.params, answer: event.answer, eliminatedGraphIds: event.eliminatedGraphIds, remainingGraphIds: event.remainingGraphIds }],
     }));
-    const onOver = (event: { winner: string; correct?: boolean }) => {
+    const onOver = (event: { winner: 'player1' | 'player2'; winnerName: string; correct?: boolean }) => {
       queryClient.setQueryData(gameOverQueryKey(roomCode), event);
       update({ status: 'FINISHED' });
     };
