@@ -29,12 +29,15 @@ export const QUESTION_LABELS: Record<QuestionType, string> = {
   [QuestionType.HAS_CYCLE]: 'Este grafo tem ciclo?',
   [QuestionType.IS_TREE]: 'Este grafo é uma árvore?',
   [QuestionType.HAS_BRIDGE]: 'Este grafo tem alguma ponte?',
-  [QuestionType.HAS_ARTICULATION_POINT]: 'Este grafo tem algum ponto de articulação?',
-  [QuestionType.HAS_ISOLATED_VERTEX]: 'Este grafo tem algum vértice isolado (grau 0)?',
+  [QuestionType.HAS_ARTICULATION_POINT]:
+    'Este grafo tem algum ponto de articulação?',
+  [QuestionType.HAS_ISOLATED_VERTEX]:
+    'Este grafo tem algum vértice isolado (grau 0)?',
   [QuestionType.HAS_LEAF]: 'Este grafo tem algum vértice folha (grau 1)?',
   [QuestionType.HAS_TRIANGLE]: 'Este grafo tem algum triângulo?',
   [QuestionType.IS_COMPLETE]: 'Este grafo é completo?',
-  [QuestionType.IS_REGULAR]: 'Este grafo é regular (todos os vértices com mesmo grau)?',
+  [QuestionType.IS_REGULAR]:
+    'Este grafo é regular (todos os vértices com mesmo grau)?',
   [QuestionType.HAS_EULERIAN_CIRCUIT]: 'Este grafo tem um circuito euleriano?',
   [QuestionType.MAX_DEGREE_GREATER_THAN]: 'O grau máximo é maior que X?',
   [QuestionType.EDGE_COUNT_GREATER_THAN]: 'O número de arestas é maior que X?',

@@ -8,22 +8,43 @@ import { SOCKET_EVENTS } from '@/constants/config';
 import { QuestionAnsweredDTO, RoomStateDTO } from '@/types/room';
 
 export const roomQueryKey = (roomCode: string) => ['room', roomCode] as const;
-export const gameOverQueryKey = (roomCode: string) => ['room', roomCode, 'game-over'] as const;
+export const gameOverQueryKey = (roomCode: string) =>
+  ['room', roomCode, 'game-over'] as const;
 
 const emptyRoom = (): RoomStateDTO => ({
-  status: 'WAITING_FOR_PLAYER', currentTurn: 'player1', opponentHand: [], questionLog: [], yourRole: 'player1',
+  status: 'WAITING_FOR_PLAYER',
+  currentTurn: 'player1',
+  opponentHand: [],
+  questionLog: [],
+  yourRole: 'player1',
 });
 
 export function useRoomState(roomCode: string) {
   const [roomClosed, setRoomClosed] = useState(false);
   const queryClient = useQueryClient();
-  const query = useQuery({ queryKey: roomQueryKey(roomCode), queryFn: async () => null as RoomStateDTO | null, enabled: false });
-  const gameOverQuery = useQuery<{ winner: 'player1' | 'player2'; winnerName: string; correct?: boolean } | null>({ queryKey: gameOverQueryKey(roomCode), queryFn: async () => null, enabled: false });
+  const query = useQuery({
+    queryKey: roomQueryKey(roomCode),
+    queryFn: async () => null as RoomStateDTO | null,
+    enabled: false,
+  });
+  const gameOverQuery = useQuery<{
+    winner: 'player1' | 'player2';
+    winnerName: string;
+    correct?: boolean;
+  } | null>({
+    queryKey: gameOverQueryKey(roomCode),
+    queryFn: async () => null,
+    enabled: false,
+  });
 
   useEffect(() => {
     const socket = getSocket();
     if (!socket.connected) socket.connect();
-    const update = (partial: Partial<RoomStateDTO>) => queryClient.setQueryData<RoomStateDTO>(roomQueryKey(roomCode), (current) => ({ ...emptyRoom(), ...current, ...partial }));
+    const update = (partial: Partial<RoomStateDTO>) =>
+      queryClient.setQueryData<RoomStateDTO>(
+        roomQueryKey(roomCode),
+        (current) => ({ ...emptyRoom(), ...current, ...partial }),
+      );
     const pendingState = consumePendingRoomState();
     if (pendingState) {
       setRoomClosed(false);
@@ -36,11 +57,31 @@ export function useRoomState(roomCode: string) {
       update(state);
     };
     const onUpdate = (state: Partial<RoomStateDTO>) => update(state);
-    const onQuestion = (event: QuestionAnsweredDTO) => queryClient.setQueryData<RoomStateDTO>(roomQueryKey(roomCode), (current) => ({
-      ...emptyRoom(), ...current, currentTurn: event.currentTurn,
-      questionLog: [...(current?.questionLog ?? []), { askedBy: event.askedBy, questionLabel: event.question.type, questionParams: event.question.params, answer: event.answer, eliminatedGraphIds: event.eliminatedGraphIds, remainingGraphIds: event.remainingGraphIds }],
-    }));
-    const onOver = (event: { winner: 'player1' | 'player2'; winnerName: string; correct?: boolean }) => {
+    const onQuestion = (event: QuestionAnsweredDTO) =>
+      queryClient.setQueryData<RoomStateDTO>(
+        roomQueryKey(roomCode),
+        (current) => ({
+          ...emptyRoom(),
+          ...current,
+          currentTurn: event.currentTurn,
+          questionLog: [
+            ...(current?.questionLog ?? []),
+            {
+              askedBy: event.askedBy,
+              questionLabel: event.question.type,
+              questionParams: event.question.params,
+              answer: event.answer,
+              eliminatedGraphIds: event.eliminatedGraphIds,
+              remainingGraphIds: event.remainingGraphIds,
+            },
+          ],
+        }),
+      );
+    const onOver = (event: {
+      winner: 'player1' | 'player2';
+      winnerName: string;
+      correct?: boolean;
+    }) => {
       queryClient.setQueryData(gameOverQueryKey(roomCode), event);
       update({ status: 'FINISHED' });
     };
@@ -62,5 +103,10 @@ export function useRoomState(roomCode: string) {
     };
   }, [queryClient, roomCode]);
 
-  return { roomState: query.data ?? null, gameOver: gameOverQuery.data ?? null, roomClosed, isLoading: query.isLoading };
+  return {
+    roomState: query.data ?? null,
+    gameOver: gameOverQuery.data ?? null,
+    roomClosed,
+    isLoading: query.isLoading,
+  };
 }
