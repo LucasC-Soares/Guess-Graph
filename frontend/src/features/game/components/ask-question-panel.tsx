@@ -20,16 +20,18 @@ export function AskQuestionPanel({ isYourTurn }: AskQuestionPanelProps) {
   const { locale, t } = useI18n();
   const { askQuestion } = useGameActions();
   const [selected, setSelected] = useState<QuestionType>(QuestionType.IS_CONNECTED);
-  const [threshold, setThreshold] = useState(2);
+  const [threshold, setThreshold] = useState('2');
   const supported = Object.values(QuestionType);
   return <div className="panel"><h2>{t('question')}</h2><div className="question-list">
-    {supported.map((type) => <button className={selected === type ? 'question-option is-selected' : 'question-option'} key={type} onClick={() => setSelected(type)} type="button">{translateQuestion(locale, type, threshold)}</button>)}
+    {supported.map((type) => <button className={selected === type ? 'question-option is-selected' : 'question-option'} key={type} onClick={() => setSelected(type)} type="button">{translateQuestion(locale, type, Number(threshold))}</button>)}
   </div>
-  {PARAMETRIC_QUESTION_TYPES.includes(selected) ? <input aria-label={t('threshold')} className="input" min="0" onChange={(event) => {
-    const value = Number(event.target.value);
-    if (!Number.isNaN(value)) setThreshold(value);
+  {PARAMETRIC_QUESTION_TYPES.includes(selected) ? <input aria-label={t('threshold')} className="input" min="0" max="10" onChange={(event) => {
+    const value = event.target.value;
+    if (value === '' || (Number(value) >= 0 && Number(value) <= 10)) {
+      setThreshold(value);
+    }
   }} type="number" value={threshold} /> : null}
-  <Button className="button button--primary" disabled={!isYourTurn || askQuestion.isPending} onClick={() => { void askQuestion.mutateAsync(questionForSelection(selected, threshold)); }} type="button">{t('ask')}</Button></div>;
+  <Button className="button button--primary" disabled={!isYourTurn || askQuestion.isPending || threshold === ''} onClick={() => { void askQuestion.mutateAsync(questionForSelection(selected, Number(threshold))); }} type="button">{t('ask')}</Button></div>;
 }
 
 function questionForSelection(type: QuestionType, threshold: number): Question {

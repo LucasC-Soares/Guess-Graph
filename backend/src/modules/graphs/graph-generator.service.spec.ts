@@ -1,8 +1,9 @@
 import { GraphGeneratorService } from './graph-generator.service';
+import { GraphPropertiesService } from './graph-properties.service';
 
 describe('GraphGeneratorService', () => {
   it('gera maos com vertices entre os limites definidos', () => {
-    const service = new GraphGeneratorService();
+    const service = new GraphGeneratorService(new GraphPropertiesService());
     const hand = service.generateHand();
 
     expect(hand).toHaveLength(GraphGeneratorService.HAND_SIZE);

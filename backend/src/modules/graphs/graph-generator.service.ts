@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'crypto';
 import { Graph } from './interfaces/graph.interface';
+import { GraphPropertiesService } from './graph-properties.service';
 
 /**
  * Gera grafos aleatórios simples pra popular a "mão" de cada jogador.
@@ -12,9 +12,17 @@ export class GraphGeneratorService {
   static readonly HAND_SIZE = 12;
   static readonly MIN_HAND_VERTEX_COUNT = 3;
   static readonly MAX_HAND_VERTEX_COUNT = 10;
+  private static readonly MAX_UNIQUE_ATTEMPTS = 200;
+
+  constructor(
+    private readonly graphPropertiesService: GraphPropertiesService,
+  ) {}
 
   generateHand(): Graph[] {
-    return Array.from({ length: GraphGeneratorService.HAND_SIZE }, () => {
+    const seenSignatures = new Set<string>();
+    const hand: Graph[] = [];
+
+    while (hand.length < GraphGeneratorService.HAND_SIZE) {
       const vertexCount =
         GraphGeneratorService.MIN_HAND_VERTEX_COUNT +
         Math.floor(
@@ -23,8 +31,58 @@ export class GraphGeneratorService {
               GraphGeneratorService.MIN_HAND_VERTEX_COUNT +
               1),
         );
-      return this.generateBatch(1, vertexCount)[0];
-    });
+
+      const graph = this.generateWithUniqueSignature(
+        vertexCount,
+        seenSignatures,
+      );
+      seenSignatures.add(this.computeSignature(graph));
+      hand.push(graph);
+    }
+
+    return hand;
+  }
+
+  /**
+   * Gera um grafo cuja assinatura (respostas às perguntas do cara-a-cara)
+   * ainda não apareceu na mão — garante que dá pra eliminar todos os
+   * outros grafos até sobrar só a resposta certa.
+   */
+  private generateWithUniqueSignature(
+    vertexCount: number,
+    seenSignatures: Set<string>,
+  ): Graph {
+    for (
+      let attempt = 0;
+      attempt < GraphGeneratorService.MAX_UNIQUE_ATTEMPTS;
+      attempt += 1
+    ) {
+      const [candidate] = this.generateBatch(1, vertexCount);
+      if (!seenSignatures.has(this.computeSignature(candidate))) {
+        return candidate;
+      }
+    }
+    throw new Error(
+      `Não foi possível gerar assinatura única para vertexCount=${vertexCount} ` +
+        `após ${GraphGeneratorService.MAX_UNIQUE_ATTEMPTS} tentativas`,
+    );
+  }
+
+  /**
+   * Assinatura = respostas às perguntas do cara-a-cara.
+   * isTree é derivado (isConnected && !hasCycle) e minDegree não é
+   * perguntado, então nenhum dos dois entra aqui.
+   */
+  private computeSignature(graph: Graph): string {
+    const { isConnected, isBipartite, hasCycle, hasBridge, maxDegree } =
+      this.graphPropertiesService.computeAll(graph);
+    return JSON.stringify([
+      isConnected,
+      isBipartite,
+      hasCycle,
+      hasBridge,
+      maxDegree,
+    ]);
   }
 
   /**
@@ -47,7 +105,18 @@ export class GraphGeneratorService {
           if (Math.random() < probability) edges.push([first, second]);
         }
       }
-      return { id: randomUUID(), vertexCount, edges };
+      return { id: this.generateId(), vertexCount, edges };
     });
+  }
+
+  /**
+   * ID único sem depender de lib externa: timestamp em base36 (garante
+   * ordem/monotonicidade dentro do processo) + sufixo aleatório em base36
+   * (evita colisão entre chamadas no mesmo milissegundo).
+   */
+  private generateId(): string {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).slice(2, 10);
+    return `${timestamp}-${random}`;
   }
 }

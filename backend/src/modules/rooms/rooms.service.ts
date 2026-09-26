@@ -40,6 +40,7 @@ export class RoomsService {
       currentTurn: 'player1',
       questionLog: [],
       rematchVotes: [],
+      hand: [],
     };
     await this.roomStore.set(room);
     return code;
@@ -67,37 +68,58 @@ export class RoomsService {
     return room;
   }
 
-  async assignHands(
-    code: string,
-    player1Graphs: GraphWithProperties[],
-    player2Graphs: GraphWithProperties[],
-  ): Promise<Room> {
+  /**
+   * Distribui uma única mão compartilhada pros dois jogadores e sorteia,
+   * dentro dela, um grafo secreto diferente pra cada um.
+   */
+  async assignHands(code: string, hand: GraphWithProperties[]): Promise<Room> {
     const room = await this.getRoom(code);
     if (!room.players[0] || !room.players[1]) {
       throw new Error('A sala precisa de dois jogadores para receber as mãos');
     }
-    room.players[0].hand = player1Graphs;
-    room.players[1].hand = player2Graphs;
-    room.players[0].activeOpponentGraphId = player2Graphs[0]?.graph.id;
-    room.players[1].activeOpponentGraphId = player1Graphs[0]?.graph.id;
-    room.players[0].remainingOpponentGraphIds = player2Graphs.map(
+    const [firstSecretIndex, secondSecretIndex] = this.pickDistinctIndices(
+      hand.length,
+    );
+    room.hand = hand;
+    room.players[0].secretGraphId = hand[firstSecretIndex].graph.id;
+    room.players[1].secretGraphId = hand[secondSecretIndex].graph.id;
+    room.players[0].remainingOpponentGraphIds = hand.map(
       ({ graph }) => graph.id,
     );
-    room.players[1].remainingOpponentGraphIds = player1Graphs.map(
+    room.players[1].remainingOpponentGraphIds = hand.map(
       ({ graph }) => graph.id,
     );
     await this.roomStore.set(room);
     return room;
   }
 
-  async recordQuestion(code: string, entry: QuestionLogEntry): Promise<Room> {
-    const room = await this.getRoom(code);
+  /** Sorteia dois índices distintos em [0, size) com distribuição uniforme. */
+  private pickDistinctIndices(size: number): [number, number] {
+    const first = Math.floor(Math.random() * size);
+    let second = Math.floor(Math.random() * (size - 1));
+    if (second >= first) second += 1;
+    return [first, second];
+  }
+
+  /**
+   * Recebe o `room` já mutado (por `filterOpponentGraphs`, por exemplo) em
+   * vez de buscar uma cópia nova do store — senão a redução de
+   * `remainingOpponentGraphIds` feita antes desta chamada se perde e nunca
+   * é persistida.
+   */
+  async recordQuestion(room: Room, entry: QuestionLogEntry): Promise<Room> {
     room.questionLog.push(entry);
     room.currentTurn = room.currentTurn === 'player1' ? 'player2' : 'player1';
     await this.roomStore.set(room);
     return room;
   }
 
+  /**
+   * Elimina, dentro da mão compartilhada da sala, os candidatos cuja
+   * resposta diverge da resposta real do grafo secreto do oponente.
+   * `remainingGraphIds` reflete o total possível na mão compartilhada
+   * (global), não uma cópia local recalculada por cliente.
+   */
   filterOpponentGraphs(
     room: Room,
     role: 'player1' | 'player2',
@@ -105,11 +127,10 @@ export class RoomsService {
     answer: boolean,
   ): { eliminatedGraphIds: string[]; remainingGraphIds: string[] } {
     const player = room.players[role === 'player1' ? 0 : 1];
-    const opponent = room.players[role === 'player1' ? 1 : 0];
-    if (!player || !opponent) throw new Error('Jogadores não encontrados');
+    if (!player) throw new Error('Jogador não encontrado');
 
     const remainingSet = new Set(player.remainingOpponentGraphIds);
-    const eliminatedGraphIds = opponent.hand
+    const eliminatedGraphIds = room.hand
       .filter(
         ({ graph, properties }) =>
           remainingSet.has(graph.id) &&
@@ -162,6 +183,10 @@ export class RoomsService {
     await this.roomStore.set(room);
   }
 
+  /**
+   * A revanche começa com quem venceu a última partida — `currentTurn`
+   * já é o vencedor desde `handleMakeGuess`, então basta não sobrescrever.
+   */
   async requestRematch(
     code: string,
     role: 'player1' | 'player2',
@@ -177,13 +202,12 @@ export class RoomsService {
       return false;
     }
     room.status = 'IN_PROGRESS';
-    room.currentTurn = 'player1';
     room.questionLog = [];
     room.rematchVotes = [];
+    room.hand = [];
     for (const player of room.players) {
       if (!player) continue;
-      player.hand = [];
-      player.activeOpponentGraphId = undefined;
+      player.secretGraphId = undefined;
       player.remainingOpponentGraphIds = [];
       player.score = 0;
       player.guessedGraphIds = [];
@@ -192,37 +216,13 @@ export class RoomsService {
     return true;
   }
 
+  /** Grafo secreto do oponente, dentro da mão compartilhada da sala. */
   getActiveOpponentGraph(
     room: Room,
     role: 'player1' | 'player2',
   ): GraphWithProperties | undefined {
-    const player = room.players[role === 'player1' ? 0 : 1];
     const opponent = room.players[role === 'player1' ? 1 : 0];
-    return opponent?.hand.find(
-      ({ graph }) => graph.id === player?.activeOpponentGraphId,
-    );
-  }
-
-  getOnlyRemainingOpponentGraph(
-    room: Room,
-    role: 'player1' | 'player2',
-  ): GraphWithProperties | undefined {
-    const player = room.players[role === 'player1' ? 0 : 1];
-    const opponent = room.players[role === 'player1' ? 1 : 0];
-    if (!player || player.remainingOpponentGraphIds.length !== 1)
-      return undefined;
-    return opponent?.hand.find(
-      ({ graph }) => graph.id === player.remainingOpponentGraphIds[0],
-    );
-  }
-
-  advanceActiveOpponentGraph(room: Room, role: 'player1' | 'player2'): void {
-    const player = room.players[role === 'player1' ? 0 : 1];
-    const opponent = room.players[role === 'player1' ? 1 : 0];
-    if (!player || !opponent) return;
-    player.activeOpponentGraphId = opponent.hand
-      .map(({ graph }) => graph.id)
-      .find((graphId) => !player.guessedGraphIds.includes(graphId));
+    return room.hand.find(({ graph }) => graph.id === opponent?.secretGraphId);
   }
 
   getPlayerRole(
@@ -244,7 +244,6 @@ export class RoomsService {
     return {
       username: username.trim(),
       socketId,
-      hand: [],
       remainingOpponentGraphIds: [],
       score: 0,
       guessedGraphIds: [],

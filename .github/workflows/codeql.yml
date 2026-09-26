@@ -4,13 +4,9 @@ on:
   pull_request:
     branches:
       - main
-      - staging
   push:
     branches:
       - main
-      - staging
-  schedule:
-    - cron: "30 3 * * 1"
 
 permissions:
   actions: read

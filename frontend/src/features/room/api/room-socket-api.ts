@@ -66,7 +66,8 @@ export function joinRoom(
 ): Promise<{
   code: string;
   status: string;
-  opponentHand?: RoomStateDTO['opponentHand'];
+  hand?: RoomStateDTO['hand'];
+  yourGraphId?: RoomStateDTO['yourGraphId'];
   currentTurn?: RoomStateDTO['currentTurn'];
   yourRole?: RoomStateDTO['yourRole'];
 }> {
@@ -79,14 +80,16 @@ export function joinRoom(
         (response: {
           code: string;
           status: string;
-          opponentHand?: RoomStateDTO['opponentHand'];
+          hand?: RoomStateDTO['hand'];
+          yourGraphId?: RoomStateDTO['yourGraphId'];
           currentTurn?: RoomStateDTO['currentTurn'];
           yourRole?: RoomStateDTO['yourRole'];
         }) => {
           if (response?.status === 'IN_PROGRESS') {
             savePendingRoomState({
               status: response.status,
-              opponentHand: response.opponentHand ?? [],
+              hand: response.hand ?? [],
+              yourGraphId: response.yourGraphId,
               currentTurn: response.currentTurn ?? 'player1',
               yourRole: response.yourRole ?? 'player1',
               questionLog: [],

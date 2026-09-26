@@ -28,7 +28,8 @@ export interface QuestionAnsweredDTO {
  */
 export interface RoomStateDTO {
   status: RoomStatus;
-  opponentHand: GraphDTO[];
+  hand: GraphDTO[];
+  yourGraphId?: string;
   currentTurn: 'player1' | 'player2';
   questionLog: QuestionLogEntryDTO[];
   yourRole: 'player1' | 'player2';

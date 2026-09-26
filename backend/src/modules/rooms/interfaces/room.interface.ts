@@ -6,8 +6,7 @@ export type RoomStatus = 'WAITING_FOR_PLAYER' | 'IN_PROGRESS' | 'FINISHED';
 export interface PlayerState {
   socketId: string;
   username: string;
-  hand: GraphWithProperties[]; // os grafos DESSE jogador (o oponente tenta adivinhar)
-  activeOpponentGraphId?: string;
+  secretGraphId?: string; // o grafo secreto DESSE jogador, dentro da mão compartilhada (Room.hand)
   remainingOpponentGraphIds: string[];
   score: number;
   guessedGraphIds: string[];
@@ -28,4 +27,5 @@ export interface Room {
   currentTurn: 'player1' | 'player2';
   questionLog: QuestionLogEntry[];
   rematchVotes: ('player1' | 'player2')[];
+  hand: GraphWithProperties[]; // mão compartilhada entre os dois jogadores
 }

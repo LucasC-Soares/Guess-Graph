@@ -66,7 +66,7 @@ describe('RoomsGateway', () => {
     gateway.server = server as never;
   });
 
-  it('sends public opponent graphs without private properties', async () => {
+  it('sends the shared hand without private properties, with a distinct secret graph id per player', async () => {
     const host = socket('socket-1');
     const guest = socket('socket-2');
     const { code } = await gateway.handleCreateRoom(
@@ -77,10 +77,14 @@ describe('RoomsGateway', () => {
 
     expect(emit).toHaveBeenCalledTimes(2);
     const firstPayload = emit.mock.calls[0][1];
+    const secondPayload = emit.mock.calls[1][1];
     expect(firstPayload).not.toHaveProperty('code');
-    expect(firstPayload.opponentHand).toHaveLength(10);
-    expect(firstPayload.opponentHand[0]).not.toHaveProperty('properties');
-    expect(firstPayload.opponentHand[0]).toHaveProperty('edges');
+    expect(firstPayload.hand).toHaveLength(10);
+    expect(firstPayload.hand[0]).not.toHaveProperty('properties');
+    expect(firstPayload.hand[0]).toHaveProperty('edges');
+    expect(firstPayload.yourGraphId).toBeDefined();
+    expect(secondPayload.yourGraphId).toBeDefined();
+    expect(firstPayload.yourGraphId).not.toBe(secondPayload.yourGraphId);
   });
 
   it('answers a question using the room associated with the socket', async () => {
@@ -120,7 +124,7 @@ describe('RoomsGateway', () => {
     );
 
     const guessedGraphId = (await roomsService.getRoom(code)).players[0]!
-      .hand[0].graph.id;
+      .secretGraphId!;
     const guess = await gateway.handleMakeGuess({ guessedGraphId }, guest);
     expect(guess).toMatchObject({ correct: true, finished: true });
     expect((await roomsService.getRoom(code)).status).toBe('FINISHED');
@@ -137,7 +141,7 @@ describe('RoomsGateway', () => {
     emit.mockClear();
 
     const room = await roomsService.getRoom(code);
-    const actualGraphId = room.players[1]!.hand[0].graph.id;
+    const actualGraphId = room.players[1]!.secretGraphId!;
     const result = await gateway.handleMakeGuess(
       { guessedGraphId: `${actualGraphId}-wrong` },
       host,

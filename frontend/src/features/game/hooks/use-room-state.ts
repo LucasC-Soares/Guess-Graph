@@ -14,7 +14,8 @@ export const gameOverQueryKey = (roomCode: string) =>
 const emptyRoom = (): RoomStateDTO => ({
   status: 'WAITING_FOR_PLAYER',
   currentTurn: 'player1',
-  opponentHand: [],
+  hand: [],
+  yourGraphId: '',
   questionLog: [],
   yourRole: 'player1',
 });
