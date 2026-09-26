@@ -64,7 +64,8 @@ export class RoomsGateway implements OnGatewayDisconnect {
   ): Promise<{
     code: string;
     status: 'WAITING_FOR_PLAYER' | 'IN_PROGRESS' | 'FINISHED';
-    opponentHand: unknown[];
+    hand: unknown[];
+    yourGraphId: string | undefined;
     currentTurn: 'player1' | 'player2';
     yourRole: 'player1' | 'player2';
   }> {
@@ -75,35 +76,30 @@ export class RoomsGateway implements OnGatewayDisconnect {
     );
     client.data.roomCode = room.code;
     void client.join(room.code);
-    const createHand = () =>
-      this.graphGenerator.generateHand().map((graph) => ({
-        graph,
-        properties: this.graphProperties.computeAll(graph),
-      }));
-    await this.roomsService.assignHands(room.code, createHand(), createHand());
+    const hand = this.graphGenerator.generateHand().map((graph) => ({
+      graph,
+      properties: this.graphProperties.computeAll(graph),
+    }));
+    await this.roomsService.assignHands(room.code, hand);
     const updatedRoom = await this.roomsService.getRoom(room.code);
     const myIndex = updatedRoom.players.findIndex(
       (player) => player?.socketId === client.id,
     );
     const myRole: 'player1' | 'player2' = myIndex === 0 ? 'player1' : 'player2';
-    const opponent = updatedRoom.players[myIndex === 0 ? 1 : 0];
-    const roomState: {
-      status: 'WAITING_FOR_PLAYER' | 'IN_PROGRESS' | 'FINISHED';
-      opponentHand: unknown[];
-      currentTurn: 'player1' | 'player2';
-      yourRole: 'player1' | 'player2';
-    } = {
+    const sharedHand = updatedRoom.hand.map(({ graph }) => graph);
+    const roomState = {
       status: updatedRoom.status,
-      opponentHand: opponent?.hand.map(({ graph }) => graph) ?? [],
+      hand: sharedHand,
+      yourGraphId: updatedRoom.players[myIndex]?.secretGraphId,
       currentTurn: updatedRoom.currentTurn,
       yourRole: myRole,
     };
     for (const [index, player] of updatedRoom.players.entries()) {
       if (!player) continue;
-      const opponentForPlayer = updatedRoom.players[index === 0 ? 1 : 0];
       this.server.to(player.socketId).emit(EVENTS.OPPONENT_JOINED, {
         status: updatedRoom.status,
-        opponentHand: opponentForPlayer?.hand.map(({ graph }) => graph) ?? [],
+        hand: sharedHand,
+        yourGraphId: player.secretGraphId,
         currentTurn: updatedRoom.currentTurn,
         yourRole: index === 0 ? 'player1' : 'player2',
       });
@@ -170,24 +166,16 @@ export class RoomsGateway implements OnGatewayDisconnect {
       throw new Error('Não é a vez deste jogador');
     const player = room.players[role === 'player1' ? 0 : 1];
     const opponent = room.players[role === 'player1' ? 1 : 0];
-    const target =
-      room.players[role === 'player1' ? 0 : 1]?.remainingOpponentGraphIds
-        .length === 1
-        ? this.roomsService.getOnlyRemainingOpponentGraph(room, role)
-        : this.roomsService.getActiveOpponentGraph(room, role);
+    const target = this.roomsService.getActiveOpponentGraph(room, role);
     if (!player || !opponent || !target) {
       throw new Error('Grafo não encontrado');
     }
     const correct = target.graph.id === data.guessedGraphId;
-    if (correct && !player.guessedGraphIds.includes(target.graph.id)) {
-      player.guessedGraphIds.push(target.graph.id);
-      player.score += 1;
-      this.roomsService.advanceActiveOpponentGraph(room, role);
-    }
-    const finished = true;
+    if (correct) player.score += 1;
     const winner = correct ? role : role === 'player1' ? 'player2' : 'player1';
     const winnerPlayer = correct ? player : opponent;
     room.status = 'FINISHED';
+    room.currentTurn = winner;
     this.server.to(room.code).emit(EVENTS.GAME_OVER, {
       winner,
       winnerName: winnerPlayer.username,
@@ -195,7 +183,7 @@ export class RoomsGateway implements OnGatewayDisconnect {
       correct,
     });
     await this.roomsService.saveRoom(room);
-    return { correct, finished, score: player.score };
+    return { correct, finished: true, score: player.score };
   }
 
   @SubscribeMessage(EVENTS.REMATCH)
@@ -213,20 +201,21 @@ export class RoomsGateway implements OnGatewayDisconnect {
         .emit(EVENTS.ROOM_UPDATED, { rematchRequestedBy: role });
       return { accepted: false, status: 'WAITING_FOR_REMATCH' };
     }
-    const createHand = () =>
-      this.graphGenerator.generateHand().map((graph) => ({
-        graph,
-        properties: this.graphProperties.computeAll(graph),
-      }));
-    await this.roomsService.assignHands(room.code, createHand(), createHand());
+    const hand = this.graphGenerator.generateHand().map((graph) => ({
+      graph,
+      properties: this.graphProperties.computeAll(graph),
+    }));
+    await this.roomsService.assignHands(room.code, hand);
     const restartedRoom = await this.roomsService.getRoom(room.code);
+    const sharedHand = restartedRoom.hand.map(({ graph }) => graph);
     for (const [index, player] of restartedRoom.players.entries()) {
       if (!player) continue;
-      const opponent = restartedRoom.players[index === 0 ? 1 : 0];
       this.server.to(player.socketId).emit(EVENTS.OPPONENT_JOINED, {
         status: restartedRoom.status,
-        opponentHand: opponent?.hand.map(({ graph }) => graph) ?? [],
+        hand: sharedHand,
+        yourGraphId: player.secretGraphId,
         currentTurn: restartedRoom.currentTurn,
+        questionLog: restartedRoom.questionLog,
         yourRole: index === 0 ? 'player1' : 'player2',
       });
     }

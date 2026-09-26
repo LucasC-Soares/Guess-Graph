@@ -59,14 +59,9 @@ describe('RoomsService', () => {
     );
   });
 
-  it('assigns hands and alternates the turn when recording a question', async () => {
+  it('assigns a shared hand with a distinct secret graph per player and alternates the turn when recording a question', async () => {
     const code = await service.createRoom('Alice', 'socket-1');
     await service.joinRoom(code, 'Bob', 'socket-2');
-    const graph = {
-      id: 'graph-1',
-      vertexCount: 2,
-      edges: [[0, 1]] as [number, number][],
-    };
     const properties = {
       isConnected: true,
       isBipartite: true,
@@ -76,15 +71,30 @@ describe('RoomsService', () => {
       maxDegree: 1,
       minDegree: 1,
     };
-    await service.assignHands(code, [{ graph, properties }], []);
+    const hand = [
+      {
+        graph: { id: 'graph-1', vertexCount: 2, edges: [[0, 1]] as [number, number][] },
+        properties,
+      },
+      {
+        graph: { id: 'graph-2', vertexCount: 2, edges: [[0, 1]] as [number, number][] },
+        properties,
+      },
+    ];
+    await service.assignHands(code, hand);
     const room = await service.recordQuestion(code, {
       askedBy: 'player1',
       question: { type: QuestionType.IS_TREE },
       answer: true,
       eliminatedGraphIds: [],
-      remainingGraphIds: ['graph-1'],
+      remainingGraphIds: ['graph-1', 'graph-2'],
     });
-    expect(room.players[0]?.hand).toHaveLength(1);
+    expect(room.hand).toHaveLength(2);
+    expect(room.players[0]?.secretGraphId).toBeDefined();
+    expect(room.players[1]?.secretGraphId).toBeDefined();
+    expect(room.players[0]?.secretGraphId).not.toBe(
+      room.players[1]?.secretGraphId,
+    );
     expect(room.questionLog).toHaveLength(1);
     expect(room.currentTurn).toBe('player2');
   });
@@ -112,5 +122,6 @@ describe('RoomsService', () => {
     expect(restartedRoom.status).toBe('IN_PROGRESS');
     expect(restartedRoom.rematchVotes).toEqual([]);
     expect(restartedRoom.questionLog).toEqual([]);
+    expect(restartedRoom.hand).toEqual([]);
   });
 });
