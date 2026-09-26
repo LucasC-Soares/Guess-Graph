@@ -1,45 +1,41 @@
-## Descrição
+## Description
 
-Descreva brevemente o que esta mudança implementa ou resolve.
+Briefly describe what this change implements or fixes.
 
-## Tasks realizadas
+## Tasks Completed
 
-- [ ] Tarefa 1
-- [ ] Tarefa 2
-- [ ] Tarefa 3
+* [ ] Task 1
+* [ ] Task 2
+* [ ] Task 3
 
-## Tipo de mudança
+## Type of Change
 
-- [ ] Nova funcionalidade
-- [ ] Correção de bug
-- [ ] Melhoria de performance
-- [ ] Refatoração
-- [ ] Alteração de CI/CD ou infraestrutura
+* [ ] New feature
+* [ ] Bug fix
+* [ ] Performance improvement
+* [ ] Refactoring
+* [ ] CI/CD or infrastructure change
 
-## Validação
+## Validation
 
-- [ ] Testes unitários adicionados ou atualizados
-- [ ] Testes unitários passaram
-- [ ] Testes E2E passaram, quando aplicável
-- [ ] Build passou
-- [ ] Lint passou sem erros
-- [ ] `react-doctor` passou, quando houver alteração no frontend
-- [ ] Pipeline do GitHub Actions passou
-- [ ] Testes manuais realizados, quando aplicável
+* [ ] Unit tests added or updated
+* [ ] Unit tests passed
+* [ ] E2E tests passed, when applicable
+* [ ] Build passed
+* [ ] Lint passed without errors
+* [ ] `react-doctor` passed, when there are frontend changes
+* [ ] GitHub Actions pipeline passed
+* [ ] Manual testing performed, when applicable
 
 ## Checklist
 
-- [ ] Código segue os padrões do projeto
-- [ ] Commits seguem o padrão `tipo: [ISSUE] descrição`
-- [ ] Não há breaking changes ou elas estão documentadas
-- [ ] Documentação foi atualizada, quando necessário
-- [ ] Variáveis de ambiente documentadas estão atualizadas, quando necessário
-- [ ] Code review solicitado
+* [ ] Code follows the project's standards
+* [ ] Commits follow the `type: [ISSUE] description` convention
+* [ ] There are no breaking changes, or they are documented
+* [ ] Documentation has been updated, when necessary
+* [ ] Documented environment variables are up to date, when necessary
+* [ ] Code review requested
 
 ## Screenshots
 
-Adicione screenshots para mudanças visuais, quando aplicável.
-
-## Informações adicionais
-
-Links para documentação, designs ou outros recursos relevantes.
+Add screenshots for visual changes, wh
