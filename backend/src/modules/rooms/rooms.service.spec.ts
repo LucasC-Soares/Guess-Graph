@@ -59,7 +59,7 @@ describe('RoomsService', () => {
     );
   });
 
-  it('assigns a shared hand with a distinct secret graph per player and alternates the turn when recording a question', async () => {
+    it('assigns a shared hand with a distinct secret graph per player and alternates the turn when recording a question', async () => {
     const code = await service.createRoom('Alice', 'socket-1');
     await service.joinRoom(code, 'Bob', 'socket-2');
     const properties = {
@@ -82,7 +82,8 @@ describe('RoomsService', () => {
       },
     ];
     await service.assignHands(code, hand);
-    const room = await service.recordQuestion(code, {
+    const fetchedRoom = await service.getRoom(code);
+    const room = await service.recordQuestion(fetchedRoom, {
       askedBy: 'player1',
       question: { type: QuestionType.IS_TREE },
       answer: true,

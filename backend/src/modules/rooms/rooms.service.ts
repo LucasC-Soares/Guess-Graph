@@ -101,8 +101,13 @@ export class RoomsService {
     return [first, second];
   }
 
-  async recordQuestion(code: string, entry: QuestionLogEntry): Promise<Room> {
-    const room = await this.getRoom(code);
+  /**
+   * Recebe o `room` já mutado (por `filterOpponentGraphs`, por exemplo) em
+   * vez de buscar uma cópia nova do store — senão a redução de
+   * `remainingOpponentGraphIds` feita antes desta chamada se perde e nunca
+   * é persistida.
+   */
+  async recordQuestion(room: Room, entry: QuestionLogEntry): Promise<Room> {
     room.questionLog.push(entry);
     room.currentTurn = room.currentTurn === 'player1' ? 'player2' : 'player1';
     await this.roomStore.set(room);
