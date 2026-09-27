@@ -19,6 +19,9 @@ Este diretório registra decisões arquiteturais do Guess Graph. Cada ADR docume
 - [ADR-0013: Tamanho da mão e limite de vértices (substituída)](0013-mao-e-limite-de-vertices.md)
 - [ADR-0014: Redução do limite de vértices](0014-reducao-do-limite-de-vertices.md)
 - [ADR-0015: Estado de sessão e localização do frontend](0015-decisoes-de-estado-e-localizacao-do-frontend.md)
+- [ADR-0016: Garantia de assinatura única na mão de grafos](0016-garantia-de-assinatura-unica-na-mao-de-grafos.md)
+- [ADR-0017: Mão compartilhada com grafo secreto por jogador](0017-mao-compartilhada-com-grafo-secreto-por-jogador.md)
+- [ADR-0018: Sessão de sala em `sessionStorage`, não `localStorage`](0018-sessao-de-sala-em-sessionstorage.md)
 
 ## Como adicionar um ADR
 

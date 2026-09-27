@@ -5,13 +5,20 @@ import { RoomStateDTO } from '@/types/room';
 
 const ROOM_SESSION_KEY = 'guess-graph:room-session';
 
+/**
+ * sessionStorage, não localStorage: a sessão da sala é por ABA, não
+ * compartilhada entre todas as abas da mesma origem. Com localStorage,
+ * abrir host e guest em duas abas do mesmo navegador faz uma sessão
+ * sobrescrever a outra (mesma chave), e um reload nas duas faz ambas
+ * tentarem retomar como o mesmo jogador.
+ */
 export function saveRoomSession(
   code: string,
   username: string,
   role: 'host' | 'guest' = 'guest',
 ): void {
   const entry = { code: code.toUpperCase(), username, role };
-  localStorage.setItem(ROOM_SESSION_KEY, JSON.stringify(entry));
+  sessionStorage.setItem(ROOM_SESSION_KEY, JSON.stringify(entry));
 }
 
 export function restoreRoomSession(): {
@@ -19,7 +26,7 @@ export function restoreRoomSession(): {
   username: string;
   role: 'host' | 'guest';
 } | null {
-  const raw = localStorage.getItem(ROOM_SESSION_KEY);
+  const raw = sessionStorage.getItem(ROOM_SESSION_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as {
@@ -33,7 +40,7 @@ export function restoreRoomSession(): {
 }
 
 export function clearRoomSession(): void {
-  localStorage.removeItem(ROOM_SESSION_KEY);
+  sessionStorage.removeItem(ROOM_SESSION_KEY);
 }
 
 // TODO: emit CREATE_ROOM e aguardar ack do servidor com { code }.
@@ -113,7 +120,7 @@ export function joinRoom(
 
 /**
  * Reassocia o socket atual (após reload/reconexão) à sala salva em
- * localStorage. O estado em si chega pelo evento OPPONENT_JOINED (o
+ * sessionStorage. O estado em si chega pelo evento OPPONENT_JOINED (o
  * servidor reemite pro próprio socket), não pelo ack — o ack aqui só serve
  * pra capturar erro (ex.: sala não existe mais).
  */

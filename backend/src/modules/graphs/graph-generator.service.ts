@@ -23,19 +23,7 @@ export class GraphGeneratorService {
     const hand: Graph[] = [];
 
     while (hand.length < GraphGeneratorService.HAND_SIZE) {
-      const vertexCount =
-        GraphGeneratorService.MIN_HAND_VERTEX_COUNT +
-        Math.floor(
-          Math.random() *
-            (GraphGeneratorService.MAX_HAND_VERTEX_COUNT -
-              GraphGeneratorService.MIN_HAND_VERTEX_COUNT +
-              1),
-        );
-
-      const graph = this.generateWithUniqueSignature(
-        vertexCount,
-        seenSignatures,
-      );
+      const graph = this.generateWithUniqueSignature(seenSignatures);
       seenSignatures.add(this.computeSignature(graph));
       hand.push(graph);
     }
@@ -43,33 +31,46 @@ export class GraphGeneratorService {
     return hand;
   }
 
+  private randomHandVertexCount(): number {
+    return (
+      GraphGeneratorService.MIN_HAND_VERTEX_COUNT +
+      Math.floor(
+        Math.random() *
+          (GraphGeneratorService.MAX_HAND_VERTEX_COUNT -
+            GraphGeneratorService.MIN_HAND_VERTEX_COUNT +
+            1),
+      )
+    );
+  }
+
   /**
-   * Gera um grafo cuja assinatura (respostas às perguntas do cara-a-cara)
-   * ainda não apareceu na mão — garante que dá pra eliminar todos os
-   * outros grafos até sobrar só a resposta certa.
+   * Gera um grafo cuja assinatura (respostas às perguntas do jogo) ainda
+   * não apareceu na mão. Sorteia um NOVO vertexCount a cada tentativa (em
+   * vez de manter um fixo) — pra vertexCounts pequenos, o espaço de
+   * assinaturas alcançáveis é bem menor que MAX_UNIQUE_ATTEMPTS, então
+   * insistir sempre no mesmo vertexCount podia esgotar as tentativas e
+   * lançar erro (foi o que quebrou uma revanche: a geração da mão nunca
+   * terminava).
    */
-  private generateWithUniqueSignature(
-    vertexCount: number,
-    seenSignatures: Set<string>,
-  ): Graph {
+  private generateWithUniqueSignature(seenSignatures: Set<string>): Graph {
     for (
       let attempt = 0;
       attempt < GraphGeneratorService.MAX_UNIQUE_ATTEMPTS;
       attempt += 1
     ) {
+      const vertexCount = this.randomHandVertexCount();
       const [candidate] = this.generateBatch(1, vertexCount);
       if (!seenSignatures.has(this.computeSignature(candidate))) {
         return candidate;
       }
     }
     throw new Error(
-      `Não foi possível gerar assinatura única para vertexCount=${vertexCount} ` +
-        `após ${GraphGeneratorService.MAX_UNIQUE_ATTEMPTS} tentativas`,
+      `Não foi possível gerar assinatura única após ${GraphGeneratorService.MAX_UNIQUE_ATTEMPTS} tentativas`,
     );
   }
 
   /**
-   * Assinatura = respostas às perguntas do cara-a-cara.
+   * Assinatura = respostas às perguntas do jogo.
    * isTree é derivado (isConnected && !hasCycle) e minDegree não é
    * perguntado, então nenhum dos dois entra aqui.
    */

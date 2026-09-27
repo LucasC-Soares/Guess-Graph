@@ -248,19 +248,27 @@ export class RoomsGateway implements OnGatewayDisconnect {
     );
     const role = this.roomsService.getPlayerRole(room, client.id);
     if (!role) throw new Error('Jogador não pertence à sala');
-    const accepted = await this.roomsService.requestRematch(room.code, role);
-    if (!accepted) {
+    const bothVoted = await this.roomsService.requestRematch(room.code, role);
+    if (!bothVoted) {
       this.server
         .to(room.code)
         .emit(EVENTS.ROOM_UPDATED, { rematchRequestedBy: role });
       return { accepted: false, status: 'WAITING_FOR_REMATCH' };
     }
-    const hand = this.graphGenerator.generateHand().map((graph) => ({
-      graph,
-      properties: this.graphProperties.computeAll(graph),
-    }));
-    await this.roomsService.assignHands(room.code, hand);
-    const restartedRoom = await this.roomsService.getRoom(room.code);
+    try {
+      const hand = this.graphGenerator.generateHand().map((graph) => ({
+        graph,
+        properties: this.graphProperties.computeAll(graph),
+      }));
+      await this.roomsService.assignHands(room.code, hand);
+    } catch {
+      // A sala continua FINISHED com os dois votos já contados — o
+      // próximo clique em "revanche" tenta gerar a mão de novo sem exigir
+      // voto de novo. Isso nunca deixa a sala IN_PROGRESS sem mão, e o ack
+      // sempre responde (nunca mais trava em timeout por exceção).
+      return { accepted: false, status: 'FINISHED' };
+    }
+    const restartedRoom = await this.roomsService.finishRematchReset(room.code);
     const sharedHand = restartedRoom.hand.map(({ graph }) => graph);
     for (const [index, player] of restartedRoom.players.entries()) {
       if (!player) continue;

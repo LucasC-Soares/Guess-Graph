@@ -125,4 +125,22 @@ describe('RoomsService', () => {
     expect(restartedRoom.questionLog).toEqual([]);
     expect(restartedRoom.hand).toEqual([]);
   });
+
+    it('votes for rematch without resetting the room until finishRematchReset runs', async () => {
+    const code = await service.createRoom('Alice', 'socket-1');
+    await service.joinRoom(code, 'Bob', 'socket-2');
+    const room = await service.getRoom(code);
+    room.status = 'FINISHED';
+    await service.saveRoom(room);
+
+    expect(await service.requestRematch(code, 'player1')).toBe(false);
+    expect((await service.getRoom(code)).status).toBe('FINISHED');
+    expect(await service.requestRematch(code, 'player2')).toBe(true);
+    expect((await service.getRoom(code)).status).toBe('FINISHED');
+
+    const restartedRoom = await service.finishRematchReset(code);
+    expect(restartedRoom.status).toBe('IN_PROGRESS');
+    expect(restartedRoom.rematchVotes).toEqual([]);
+    expect(restartedRoom.questionLog).toEqual([]);
+  });
 });
