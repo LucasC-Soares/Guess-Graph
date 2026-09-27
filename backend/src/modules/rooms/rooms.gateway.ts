@@ -216,6 +216,7 @@ export class RoomsGateway implements OnGatewayDisconnect {
         yourGraphId: player.secretGraphId,
         currentTurn: restartedRoom.currentTurn,
         questionLog: restartedRoom.questionLog,
+        rematchRequestedBy: undefined,
         yourRole: index === 0 ? 'player1' : 'player2',
       });
     }

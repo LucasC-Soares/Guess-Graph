@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useI18n } from '@/lib/i18n-context';
@@ -10,6 +11,7 @@ import { AskQuestionPanel } from './ask-question-panel';
 import { QuestionLog } from './question-log';
 import { useGameActions } from '../hooks/use-game-actions';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
+import { clearRoomSession } from '../../room/api/room-socket-api';
 
 interface GameBoardProps {
   roomCode: string;
@@ -27,11 +29,20 @@ interface GameBoardProps {
  * 4. GAME_OVER: mostrar resultado final (quem venceu).
  */
 export function GameBoard({ roomCode }: GameBoardProps) {
+  const router = useRouter();
   const { locale, setLocale, t } = useI18n();
   const { roomState, gameOver, roomClosed } = useRoomState(roomCode);
   const { makeGuess, rematch, closeRoom: closeRoomMutation } = useGameActions();
   const [selectedId, setSelectedId] = useState('');
   const [guessNumber, setGuessNumber] = useState('');
+  useEffect(() => {
+    if (!roomClosed) return;
+    const timeout = setTimeout(() => {
+      clearRoomSession();
+      router.push('/');
+    }, 2000);
+    return () => clearTimeout(timeout);
+  }, [roomClosed, router]);
   if (roomClosed) return <main className="site-shell"><div className="waiting-card panel"><p>{t('roomClosedMessage')}</p></div></main>;
   if (!roomState) return <main className="site-shell"><div className="waiting-card panel"><p>{t('waiting')}</p><p>{t('roomCodeLabel')}</p><div className="waiting-card__code">{roomCode}</div><p className="muted">{t('shareCode')}</p></div></main>;
   if (roomState.status === 'WAITING_FOR_PLAYER') return <main className="site-shell"><div className="waiting-card panel"><p>{t('waiting')}</p><p>{t('roomCodeLabel')}</p><div className="waiting-card__code">{roomCode}</div><p className="muted">{t('shareCode')}</p></div></main>;
