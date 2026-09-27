@@ -111,6 +111,36 @@ export function joinRoom(
   });
 }
 
+/**
+ * Reassocia o socket atual (após reload/reconexão) à sala salva em
+ * localStorage. O estado em si chega pelo evento OPPONENT_JOINED (o
+ * servidor reemite pro próprio socket), não pelo ack — o ack aqui só serve
+ * pra capturar erro (ex.: sala não existe mais).
+ */
+export function resumeRoom(
+  code: string,
+  username: string,
+  role: 'host' | 'guest',
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const socket = getSocket();
+    const request = () =>
+      socket
+        .timeout(8000)
+        .emit(
+          SOCKET_EVENTS.RESUME_ROOM,
+          { code, username, role: role === 'host' ? 'player1' : 'player2' },
+          (error: Error | null) => (error ? reject(error) : resolve()),
+        );
+    if (socket.connected) request();
+    else {
+      socket.once('connect', request);
+      socket.once('connect_error', reject);
+      socket.connect();
+    }
+  });
+}
+
 export function requestRematch(): void {
   getSocket().emit(SOCKET_EVENTS.REMATCH);
 }

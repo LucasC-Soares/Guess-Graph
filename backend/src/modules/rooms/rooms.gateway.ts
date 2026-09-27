@@ -21,6 +21,7 @@ import { Question, answerQuestion } from '../questions/question-catalog';
 const EVENTS = {
   CREATE_ROOM: 'room:create',
   JOIN_ROOM: 'room:join',
+  RESUME_ROOM: 'room:resume',
   ASK_QUESTION: 'game:ask-question',
   MAKE_GUESS: 'game:make-guess',
   CLOSE_ROOM: 'room:close',
@@ -37,6 +38,13 @@ const EVENTS = {
   cors: { origin: process.env.FRONTEND_URL ?? 'http://localhost:3000' },
 })
 export class RoomsGateway implements OnGatewayDisconnect {
+  /**
+   * Um reload de página derruba o socket antes do novo conectar e mandar
+   * RESUME_ROOM. Sem essa folga, handleDisconnect já teria removido o
+   * jogador da sala antes do resume chegar.
+   */
+  private static readonly RECONNECT_GRACE_MS = 8000;
+
   @WebSocketServer()
   server!: Server;
 
@@ -105,6 +113,52 @@ export class RoomsGateway implements OnGatewayDisconnect {
       });
     }
     return { code: updatedRoom.code, ...roomState };
+  }
+
+  /**
+   * Reassocia o socket novo (após reload/reconexão) ao jogador salvo pelo
+   * cliente em localStorage, em vez de exigir um JOIN_ROOM — que falharia
+   * porque a sala já está cheia.
+   */
+  @SubscribeMessage(EVENTS.RESUME_ROOM)
+  async handleResumeRoom(
+    @MessageBody()
+    data: { code: string; username: string; role: 'player1' | 'player2' },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = await this.roomsService.resumePlayer(
+      data.code,
+      data.role,
+      data.username,
+      client.id,
+    );
+    client.data.roomCode = room.code;
+    void client.join(room.code);
+    const myIndex = data.role === 'player1' ? 0 : 1;
+    const roomState = {
+      status: room.status,
+      hand: room.hand.map(({ graph }) => graph),
+      yourGraphId: room.players[myIndex]?.secretGraphId,
+      currentTurn: room.currentTurn,
+      questionLog: room.questionLog,
+      rematchRequestedBy:
+        room.rematchVotes.length === 1 ? room.rematchVotes[0] : null,
+      yourRole: data.role,
+    };
+    client.emit(EVENTS.OPPONENT_JOINED, roomState);
+    if (room.status === 'FINISHED') {
+      const winnerRole = room.currentTurn;
+      const winnerPlayer = room.players[winnerRole === 'player1' ? 0 : 1];
+      if (winnerPlayer) {
+        client.emit(EVENTS.GAME_OVER, {
+          winner: winnerRole,
+          winnerName: winnerPlayer.username,
+          score: winnerPlayer.score,
+          correct: winnerPlayer.score > 0,
+        });
+      }
+    }
+    return { code: room.code, ...roomState };
   }
 
   @SubscribeMessage(EVENTS.ASK_QUESTION)
@@ -216,7 +270,7 @@ export class RoomsGateway implements OnGatewayDisconnect {
         yourGraphId: player.secretGraphId,
         currentTurn: restartedRoom.currentTurn,
         questionLog: restartedRoom.questionLog,
-        rematchRequestedBy: undefined,
+        rematchRequestedBy: null,
         yourRole: index === 0 ? 'player1' : 'player2',
       });
     }
@@ -234,8 +288,22 @@ export class RoomsGateway implements OnGatewayDisconnect {
     return { closed: true };
   }
 
+  /**
+   * Não remove o jogador na hora — um reload de página também dispara
+   * disconnect. Espera uma folga pro cliente reconectar e mandar
+   * RESUME_ROOM; só remove de verdade se o socket ainda estiver "velho"
+   * depois da espera (removePlayer só acha o jogador pelo socketId antigo,
+   * então se o resume já trocou o socketId, isso vira um no-op).
+   */
   async handleDisconnect(client: Socket): Promise<void> {
-    const code = await this.roomsService.removePlayer(client.id);
+    const staleSocketId = client.id;
+    setTimeout(() => {
+      void this.finalizeDisconnect(staleSocketId);
+    }, RoomsGateway.RECONNECT_GRACE_MS);
+  }
+
+  private async finalizeDisconnect(staleSocketId: string): Promise<void> {
+    const code = await this.roomsService.removePlayer(staleSocketId);
     if (code)
       this.server
         .to(code)

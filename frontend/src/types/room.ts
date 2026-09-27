@@ -33,5 +33,5 @@ export interface RoomStateDTO {
   currentTurn: 'player1' | 'player2';
   questionLog: QuestionLogEntryDTO[];
   yourRole: 'player1' | 'player2';
-  rematchRequestedBy?: 'player1' | 'player2';
+  rematchRequestedBy?: 'player1' | 'player2' | null;
 }

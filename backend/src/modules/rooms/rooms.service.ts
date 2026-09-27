@@ -61,6 +61,27 @@ export class RoomsService {
     return room;
   }
 
+  /**
+   * Reassocia um socket novo (após reload ou reconexão) ao jogador salvo
+   * localmente pelo cliente, sem exigir uma nova entrada via JOIN_ROOM.
+   */
+  async resumePlayer(
+    code: string,
+    role: 'player1' | 'player2',
+    username: string,
+    socketId: string,
+  ): Promise<Room> {
+    const room = await this.getRoom(code);
+    const index = role === 'player1' ? 0 : 1;
+    const player = room.players[index];
+    if (!player || player.username !== username.trim()) {
+      throw new Error('Não foi possível retomar a sala');
+    }
+    player.socketId = socketId;
+    await this.roomStore.set(room);
+    return room;
+  }
+
   async getRoom(code: string): Promise<Room> {
     const normalizedCode = code.trim().toUpperCase();
     const room = await this.roomStore.get(normalizedCode);

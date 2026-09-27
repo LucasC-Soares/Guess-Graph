@@ -9,6 +9,7 @@ export const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'http://localhost:3001';
 export const SOCKET_EVENTS = {
   CREATE_ROOM: 'room:create',
   JOIN_ROOM: 'room:join',
+  RESUME_ROOM: 'room:resume',
   ASK_QUESTION: 'game:ask-question',
   MAKE_GUESS: 'game:make-guess',
   REMATCH: 'game:rematch',
