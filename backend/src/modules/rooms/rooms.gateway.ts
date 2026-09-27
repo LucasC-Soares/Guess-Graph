@@ -184,7 +184,8 @@ export class RoomsGateway implements OnGatewayDisconnect {
     );
     const updatedRoom = await this.roomsService.recordQuestion(room, {
       askedBy: role,
-      question: data.question,
+      questionLabel: data.question.type,
+      questionParams: data.question.params,
       answer,
       ...filterResult,
     });

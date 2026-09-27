@@ -1,12 +1,12 @@
 import { GraphWithProperties } from '../../graphs/interfaces/graph.interface';
-import { Question } from '../../questions/question-catalog';
+import { Question, QuestionType } from '../../questions/question-catalog';
 
 export type RoomStatus = 'WAITING_FOR_PLAYER' | 'IN_PROGRESS' | 'FINISHED';
 
 export interface PlayerState {
   socketId: string;
   username: string;
-  secretGraphId?: string; // o grafo secreto DESSE jogador, dentro da mão compartilhada (Room.hand)
+  secretGraphId?: string;
   remainingOpponentGraphIds: string[];
   score: number;
   guessedGraphIds: string[];
@@ -14,7 +14,8 @@ export interface PlayerState {
 
 export interface QuestionLogEntry {
   askedBy: 'player1' | 'player2';
-  question: Question;
+  questionLabel: QuestionType;
+  questionParams?: Question['params'];
   answer: boolean;
   eliminatedGraphIds: string[];
   remainingGraphIds: string[];
@@ -23,9 +24,9 @@ export interface QuestionLogEntry {
 export interface Room {
   code: string;
   status: RoomStatus;
-  players: [PlayerState | null, PlayerState | null]; // player1, player2
+  players: [PlayerState | null, PlayerState | null];
   currentTurn: 'player1' | 'player2';
   questionLog: QuestionLogEntry[];
   rematchVotes: ('player1' | 'player2')[];
-  hand: GraphWithProperties[]; // mão compartilhada entre os dois jogadores
+  hand: GraphWithProperties[];
 }
