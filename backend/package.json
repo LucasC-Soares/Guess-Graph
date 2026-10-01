@@ -48,6 +48,7 @@
       "!modules/**/*.spec.ts",
       "!modules/**/*.int-spec.ts",
       "!modules/**/*.e2e-spec.ts",
+      "!modules/**/*.module.ts",
       "!modules/**/interfaces/**"
     ],
     "coverageDirectory": "../coverage",
