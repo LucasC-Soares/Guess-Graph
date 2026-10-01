@@ -1,31 +1,31 @@
 # Architecture Decision Records
 
-Este diretório registra decisões arquiteturais do Guess Graph. Cada ADR documenta uma decisão aceita, seu contexto e suas consequências.
+This directory records the architectural decisions for Guess Graph. Each ADR documents an accepted decision, its context, and its consequences.
 
-## Indice
+## Index
 
-- [ADR-0001: Monorepo com frontend e backend separados](0001-monorepo-frontend-backend-separados.md)
-- [ADR-0002: Backend modular com NestJS](0002-backend-modular-com-nestjs.md)
-- [ADR-0003: Frontend Next.js App Router organizado por features](0003-frontend-nextjs-app-router-features.md)
-- [ADR-0004: Comunicação em tempo real com Socket.IO](0004-comunicacao-tempo-real-socketio.md)
-- [ADR-0005: Estado de salas em memória no MVP (substituída)](0005-estado-de-salas-em-memoria.md)
-- [ADR-0006: Servidor como autoridade do jogo](0006-servidor-como-autoridade-do-jogo.md)
-- [ADR-0007: Modelo e cálculo de propriedades de grafos](0007-modelo-e-calculo-de-grafos.md)
-- [ADR-0008: Contratos TypeScript espelhados entre as aplicações](0008-contratos-typescript-espelhados.md)
-- [ADR-0009: Testes por camadas, independentes de Socket.IO real](0009-testes-por-camadas.md)
-- [ADR-0010: Estado efêmero de salas no Redis](0010-estado-efemero-de-salas-no-redis.md)
-- [ADR-0011: Filtragem de grafos e fim da partida](0011-filtragem-de-grafos-e-fim-da-partida.md)
-- [ADR-0012: Encerramento de sala e revanche por consenso](0012-encerramento-de-sala-e-revanche-por-consenso.md)
-- [ADR-0013: Tamanho da mão e limite de vértices (substituída)](0013-mao-e-limite-de-vertices.md)
-- [ADR-0014: Redução do limite de vértices](0014-reducao-do-limite-de-vertices.md)
-- [ADR-0015: Estado de sessão e localização do frontend](0015-decisoes-de-estado-e-localizacao-do-frontend.md)
-- [ADR-0016: Garantia de assinatura única na mão de grafos](0016-garantia-de-assinatura-unica-na-mao-de-grafos.md)
-- [ADR-0017: Mão compartilhada com grafo secreto por jogador](0017-mao-compartilhada-com-grafo-secreto-por-jogador.md)
-- [ADR-0018: Sessão de sala em `sessionStorage`, não `localStorage`](0018-sessao-de-sala-em-sessionstorage.md)
+- [ADR-0001: Monorepo with separate frontend and backend](0001-monorepo-frontend-backend-separated.md)
+- [ADR-0002: Modular backend with NestJS](0002-backend-modular-with-nestjs.md)
+- [ADR-0003: Frontend Next.js App Router organized by features](0003-frontend-nextjs-app-router-features.md)
+- [ADR-0004: Real-time communication with Socket.IO](0004-real-time-communication-with-socketio.md)
+- [ADR-0005: In-memory room state in the MVP (superseded)](0005-in-memory-room-state-in-the-mvp.md)
+- [ADR-0006: Server as the authority of the game](0006-server-as-authority-of-the-game.md)
+- [ADR-0007: Graph model and property calculation](0007-graph-model-and-property-calculation.md)
+- [ADR-0008: Mirrored TypeScript contracts between applications](0008-mirrored-typescript-contracts-between-applications.md)
+- [ADR-0009: Layered tests independent from real Socket.IO](0009-layered-tests-independent-from-real-socketio.md)
+- [ADR-0010: Ephemeral room state in Redis](0010-ephemeral-room-state-in-redis.md)
+- [ADR-0011: Graph filtering and end-of-game behavior](0011-graph-filtering-and-end-of-game-behavior.md)
+- [ADR-0012: Room shutdown and rematch by consensus](0012-room-shutdown-and-rematch-by-consensus.md)
+- [ADR-0013: Hand size and vertex limit (superseded)](0013-hand-size-and-vertex-limit.md)
+- [ADR-0014: Reduction of the vertex limit](0014-reduction-of-the-vertex-limit.md)
+- [ADR-0015: Session state and frontend location decisions](0015-session-state-and-frontend-location-decisions.md)
+- [ADR-0016: Unique-signature guarantee in graph hands](0016-unique-signature-guarantee-in-graph-hands.md)
+- [ADR-0017: Shared hand with a secret graph per player](0017-shared-hand-with-a-secret-graph-per-player.md)
+- [ADR-0018: Room session in `sessionStorage`, not `localStorage`](0018-room-session-in-sessionstorage-not-localstorage.md)
 
-## Como adicionar um ADR
+## How to add an ADR
 
-1. Use o próximo número sequencial.
-2. Escreva o contexto antes da decisão.
-3. Registre alternativas relevantes e consequências.
-4. Atualize este índice.
+1. Use the next sequential number.
+2. Write the context before the decision.
+3. Record relevant alternatives and consequences.
+4. Update this index.
