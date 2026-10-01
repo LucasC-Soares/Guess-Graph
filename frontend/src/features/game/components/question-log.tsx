@@ -13,8 +13,16 @@ export function QuestionLog({ entries, graphNumbers, yourRole }: QuestionLogProp
   return <div className="question-list">{entries.map((entry, index) => {
     const questionNumber = index + 1;
     const askedBy = entry.askedBy === yourRole ? t('you') : t('opponent');
+    const entryKey = [
+      entry.askedBy,
+      entry.questionLabel,
+      JSON.stringify(entry.questionParams),
+      entry.answer,
+      entry.eliminatedGraphIds.join(','),
+      entry.remainingGraphIds.join(','),
+    ].join(':');
     return (
-      <div className="log-entry" key={`${entry.questionLabel}-${questionNumber}`}>
+      <div className="log-entry" key={entryKey}>
         <div><strong>{t('questionNumber').replace('{number}', String(questionNumber))}</strong> · {askedBy}</div>
         <div>{translateQuestion(locale, entry.questionLabel, entry.questionParams?.threshold)}</div>
         <div className="log-entry__answer">{entry.answer ? t('yes') : t('no')}</div>
