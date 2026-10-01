@@ -127,7 +127,7 @@ describe('RoomsService', () => {
     expect(await service.requestRematch(code, 'player1')).toBe(false);
     expect((await service.getRoom(code)).status).toBe('FINISHED');
     expect(await service.requestRematch(code, 'player2')).toBe(true);
-    const restartedRoom = await service.getRoom(code);
+    const restartedRoom = await service.finishRematchReset(code);
     expect(restartedRoom.status).toBe('IN_PROGRESS');
     expect(restartedRoom.rematchVotes).toEqual([]);
     expect(restartedRoom.questionLog).toEqual([]);

@@ -5,6 +5,49 @@ The HTTP API and Socket.IO event contract are in [docs/api.md](docs/api.md).
 
 A 1v1 game where each player tries to guess the opponent's graph structural properties through yes/no questions.
 
+## Requirements
+
+- Node.js 20 or newer;
+- npm;
+- Redis 7 or newer for the backend.
+
+## Run locally
+
+Start Redis, then run the backend and frontend in separate terminals:
+
+```bash
+cd backend
+npm install
+npm run start:dev
+```
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:3000. The backend runs on http://localhost:3001 by default.
+
+The backend reads `REDIS_URL`, `PORT`, and `FRONTEND_URL`. The frontend reads
+`NEXT_PUBLIC_WS_URL`. Example files are available at `backend/.env.example`
+and `frontend/.env.example`.
+
+## Validation
+
+```bash
+cd backend
+npm run lint
+npm test
+npm run build
+```
+
+```bash
+cd frontend
+npm run lint
+npm run build
+```
+
 ## Structure
 
 ```
