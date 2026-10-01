@@ -17,17 +17,6 @@ interface GameBoardProps {
   roomCode: string;
 }
 
-/**
- * Composição principal da tela de jogo.
- * TODO:
- * 1. const { roomState } = useRoomState(roomCode);
- * 2. enquanto roomState === null ou status === WAITING_FOR_PLAYER,
- *    mostrar tela de espera com o código pra compartilhar.
- * 3. quando IN_PROGRESS: renderizar a mão compartilhada (GraphVisualization,
- *    um por vez ou em grid, com o seu próprio grafo marcado), o
- *    AskQuestionPanel e o QuestionLog.
- * 4. GAME_OVER: mostrar resultado final (quem venceu).
- */
 export function GameBoard({ roomCode }: GameBoardProps) {
   const router = useRouter();
   const { locale, setLocale, t } = useI18n();
@@ -43,7 +32,17 @@ export function GameBoard({ roomCode }: GameBoardProps) {
     }, 2000);
     return () => clearTimeout(timeout);
   }, [roomClosed, router]);
-  if (roomClosed) return <main className="site-shell"><div className="waiting-card panel"><p>{t('roomClosedMessage')}</p></div></main>;
+  if (roomClosed) return <main className="site-shell"><div className="page-frame closed-room-frame">
+    <section aria-live="polite" className="closed-room panel">
+      <div aria-hidden="true" className="closed-room__mark">×</div>
+      <span className="eyebrow">{t('roomClosed')}</span>
+      <h1>{t('roomClosedTitle')}</h1>
+      <p className="closed-room__message">{t('roomClosedMessage')}</p>
+      <p className="closed-room__redirect">{t('returningHome')}</p>
+      <div aria-hidden="true" className="closed-room__progress" />
+      <Button className="button button--quiet" onClick={() => { clearRoomSession(); router.push('/'); }} type="button">{t('goHome')}</Button>
+    </section>
+  </div></main>;
   if (!roomState) return <main className="site-shell"><div className="waiting-card panel"><p>{t('waiting')}</p><p>{t('roomCodeLabel')}</p><div className="waiting-card__code">{roomCode}</div><p className="muted">{t('shareCode')}</p></div></main>;
   if (roomState.status === 'WAITING_FOR_PLAYER') return <main className="site-shell"><div className="waiting-card panel"><p>{t('waiting')}</p><p>{t('roomCodeLabel')}</p><div className="waiting-card__code">{roomCode}</div><p className="muted">{t('shareCode')}</p></div></main>;
   const isYourTurn = roomState.currentTurn === roomState.yourRole;

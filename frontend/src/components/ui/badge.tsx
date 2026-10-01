@@ -1,6 +1,11 @@
 import { HTMLAttributes } from 'react';
 
-// TODO: usado pra indicar "sua vez" / "vez do oponente", e o veredito sim/não das perguntas.
 export function Badge(props: HTMLAttributes<HTMLSpanElement>) {
-  return <span {...props} />;
+  const { className, ...badgeProps } = props;
+  return (
+    <span
+      className={`inline-block bg-[var(--yellow)] px-[9px] py-[7px] font-sans text-[.72rem] font-bold leading-none text-[var(--ink)]${className ? ` ${className}` : ''}`}
+      {...badgeProps}
+    />
+  );
 }
