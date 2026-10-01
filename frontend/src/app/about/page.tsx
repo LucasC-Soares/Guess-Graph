@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { SiteHeader } from '@/components/ui/site-header';
+import { GithubIcon, LinkedInIcon } from '@/components/ui/brand-icons';
 import { PROJECT_REPOSITORY_URL, LINKEDIN_URL } from '@/constants/links';
 import { useI18n } from '@/lib/i18n-context';
 
@@ -28,10 +29,12 @@ export default function AboutPage() {
           <aside className="about-links">
             <span className="eyebrow">{t('aboutLinksEyebrow')}</span>
             <a className="about-link" href={PROJECT_REPOSITORY_URL} rel="noreferrer" target="_blank">
-              <span>{t('repositoryLabel')}</span><strong>GitHub <span aria-hidden="true">↗</span></strong>
+              <span>{t('repositoryLabel')}</span>
+              <strong><GithubIcon className="brand-icon" /> GitHub <span aria-hidden="true">↗</span></strong>
             </a>
             <a className="about-link" href={LINKEDIN_URL} rel="noreferrer" target="_blank">
-              <span>{t('linkedinLabel')}</span><strong>LinkedIn <span aria-hidden="true">↗</span></strong>
+              <span>{t('linkedinLabel')}</span>
+              <strong><LinkedInIcon className="brand-icon" /> LinkedIn <span aria-hidden="true">↗</span></strong>
             </a>
           </aside>
         </section>
