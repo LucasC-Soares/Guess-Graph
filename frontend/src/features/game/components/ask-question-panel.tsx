@@ -9,11 +9,12 @@ import { useGameActions } from '../hooks/use-game-actions';
 
 interface AskQuestionPanelProps {
   isYourTurn: boolean;
+  roomCode: string;
 }
 
-export function AskQuestionPanel({ isYourTurn }: AskQuestionPanelProps) {
+export function AskQuestionPanel({ isYourTurn, roomCode }: AskQuestionPanelProps) {
   const { locale, t } = useI18n();
-  const { askQuestion } = useGameActions();
+  const { askQuestion } = useGameActions(roomCode);
   const [selected, setSelected] = useState<QuestionType>(QuestionType.IS_CONNECTED);
   const [threshold, setThreshold] = useState('2');
   const supported = Object.values(QuestionType);
