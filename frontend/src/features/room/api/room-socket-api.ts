@@ -5,13 +5,6 @@ import { RoomStateDTO } from '@/types/room';
 
 const ROOM_SESSION_KEY = 'guess-graph:room-session';
 
-/**
- * sessionStorage, não localStorage: a sessão da sala é por ABA, não
- * compartilhada entre todas as abas da mesma origem. Com localStorage,
- * abrir host e guest em duas abas do mesmo navegador faz uma sessão
- * sobrescrever a outra (mesma chave), e um reload nas duas faz ambas
- * tentarem retomar como o mesmo jogador.
- */
 export function saveRoomSession(
   code: string,
   username: string,
@@ -43,8 +36,6 @@ export function clearRoomSession(): void {
   sessionStorage.removeItem(ROOM_SESSION_KEY);
 }
 
-// TODO: emit CREATE_ROOM e aguardar ack do servidor com { code }.
-// Socket.io suporta callback de ack: socket.emit(event, payload, (response) => ...)
 export function createRoom(username: string): Promise<{ code: string }> {
   return new Promise((resolve, reject) => {
     const socket = getSocket();
@@ -66,7 +57,6 @@ export function createRoom(username: string): Promise<{ code: string }> {
   });
 }
 
-// TODO: emit JOIN_ROOM { code, username }; the server associates the socket with the room
 export function joinRoom(
   code: string,
   username: string,
@@ -118,12 +108,6 @@ export function joinRoom(
   });
 }
 
-/**
- * Reassocia o socket atual (após reload/reconexão) à sala salva em
- * sessionStorage. O estado em si chega pelo evento OPPONENT_JOINED (o
- * servidor reemite pro próprio socket), não pelo ack — o ack aqui só serve
- * pra capturar erro (ex.: sala não existe mais).
- */
 export function resumeRoom(
   code: string,
   username: string,
@@ -156,15 +140,12 @@ export function closeRoom(): void {
   getSocket().emit(SOCKET_EVENTS.CLOSE_ROOM);
 }
 
-// TODO: getSocket().on(SOCKET_EVENTS.OPPONENT_JOINED, callback)
-//   dispara quando o segundo jogador entra e o jogo de fato começa
 export function onOpponentJoined(
   callback: (state: RoomStateDTO) => void,
 ): void {
   getSocket().on(SOCKET_EVENTS.OPPONENT_JOINED, callback);
 }
 
-// TODO: getSocket().on(SOCKET_EVENTS.ROOM_UPDATED, callback)
 export function onRoomUpdate(callback: (state: RoomStateDTO) => void): void {
   getSocket().on(SOCKET_EVENTS.ROOM_UPDATED, callback);
 }

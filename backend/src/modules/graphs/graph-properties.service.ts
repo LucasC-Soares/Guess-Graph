@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Graph, GraphProperties } from './interfaces/graph.interface';
 
-/**
- * Calcula as propriedades estruturais de um grafo.
- */
 @Injectable()
 export class GraphPropertiesService {
   computeAll(graph: Graph): GraphProperties {
@@ -28,7 +25,6 @@ export class GraphPropertiesService {
       minDegree: this.computeMinDegree(graph),
     };
   }
-  /** BFS/DFS simples a partir do vértice 0, checando se visita todos. */
   private checkConnected(graph: Graph, adj: number[][]): boolean {
     if (graph.vertexCount <= 1) return true;
 
@@ -47,23 +43,20 @@ export class GraphPropertiesService {
     return visited.every((v) => v);
   }
 
-  /** 2-coloração via BFS/DFS: bipartido sse não há aresta entre vértices de mesma cor. */
   private checkBipartite(graph: Graph, adj: number[][]): boolean {
     if (graph.vertexCount <= 1) return true;
 
     function bfs(start: number, colors: number[], adj: number[][]): boolean {
       const queue: number[] = [start];
-      colors[start] = 0; // Cor inicial
+      colors[start] = 0;
 
       while (queue.length > 0) {
         const v = queue.shift()!;
         for (const neighbor of adj[v]) {
           if (colors[neighbor] === -1) {
-            // Atribuir cor oposta
             colors[neighbor] = 1 - colors[v];
             queue.push(neighbor);
           } else if (colors[neighbor] === colors[v]) {
-            // Encontrou vizinho com mesma cor
             return false;
           }
         }
@@ -84,7 +77,6 @@ export class GraphPropertiesService {
     return true;
   }
 
-  /** DFS com detecção de aresta de retorno (back edge) em grafo não-direcionado. */
   private checkHasCycle(graph: Graph, adj: number[][]): boolean {
     if (graph.vertexCount <= 1) return false;
 
@@ -101,7 +93,7 @@ export class GraphPropertiesService {
             return true;
           }
         } else if (neighbor !== parent) {
-          return true; // Encontrou ciclo
+          return true;
         }
       }
       return false;
@@ -120,7 +112,6 @@ export class GraphPropertiesService {
     return false;
   }
 
-  /** Ponte: aresta cuja remoção desconecta o grafo (algoritmo de Tarjan, low-link). */
   private checkHasBridge(graph: Graph, adj: number[][]): boolean {
     if (graph.vertexCount <= 1) return false;
 
@@ -136,14 +127,14 @@ export class GraphPropertiesService {
       visited[v] = true;
       tin[v] = low[v] = timer.value++;
       for (const neighbor of adj[v]) {
-        if (neighbor === parent) continue; // Ignorar a aresta de volta para o pai
+        if (neighbor === parent) continue;
         if (!visited[neighbor]) {
           if (dfs(neighbor, v, visited, tin, low, timer, adj)) {
-            return true; // Encontrou ponte
+            return true;
           }
           low[v] = Math.min(low[v], low[neighbor]);
           if (low[neighbor] > tin[v]) {
-            return true; // Aresta (v, neighbor) é uma ponte
+            return true;
           }
         } else {
           low[v] = Math.min(low[v], tin[neighbor]);
@@ -160,7 +151,7 @@ export class GraphPropertiesService {
     for (let i = 0; i < graph.vertexCount; i++) {
       if (!visited[i]) {
         if (dfs(i, -1, visited, tin, low, timer, adj)) {
-          return true; // Encontrou ponte
+          return true;
         }
       }
     }

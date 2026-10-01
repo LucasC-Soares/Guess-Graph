@@ -1,9 +1,5 @@
-/**
- * Representação de um grafo simples e não-direcionado.
- * Vértices são inteiros de 0 a n-1; arestas como lista de pares.
- */
 export interface Graph {
-  id: string; // usado pra referenciar no chute do oponente (uuid ou índice)
+  id: string;
   vertexCount: number;
   edges: [number, number][];
 }

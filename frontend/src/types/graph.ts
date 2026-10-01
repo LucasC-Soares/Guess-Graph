@@ -1,4 +1,3 @@
-/** Espelha backend/src/modules/graphs/interfaces/graph.interface.ts */
 export interface GraphDTO {
   id: string;
   vertexCount: number;
@@ -23,11 +22,6 @@ export const QUESTION_LABELS: Record<QuestionType, string> = {
   [QuestionType.MAX_DEGREE_GREATER_THAN]: 'O grau máximo é maior que X?',
 };
 
-/**
- * Perguntas paramétricas: o jogador escolhe X, então precisam de um input
- * numérico extra na UI (ver features/game/components/ask-question-panel.tsx).
- * As demais são puramente binárias — nenhum parâmetro necessário.
- */
 export const PARAMETRIC_QUESTION_TYPES: QuestionType[] = [
   QuestionType.MAX_DEGREE_GREATER_THAN,
 ];

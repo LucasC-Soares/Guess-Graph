@@ -8,14 +8,12 @@ import {
 import { RedisRoomStore, RoomStore } from './redis-room-store';
 import { Question, answerQuestion } from '../questions/question-catalog';
 
-/** Estado efêmero das salas, compartilhado entre instâncias via Redis. */
 @Injectable()
 export class RoomsService {
   private readonly codeAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
   constructor(@Inject(RedisRoomStore) private readonly roomStore: RoomStore) {}
 
-  /** Gera um código curto e aumenta o comprimento se houver colisão. */
   async generateRoomCode(): Promise<string> {
     let codeLength = 5;
     while (true) {
@@ -61,10 +59,6 @@ export class RoomsService {
     return room;
   }
 
-  /**
-   * Reassocia um socket novo (após reload ou reconexão) ao jogador salvo
-   * localmente pelo cliente, sem exigir uma nova entrada via JOIN_ROOM.
-   */
   async resumePlayer(
     code: string,
     role: 'player1' | 'player2',
@@ -89,13 +83,6 @@ export class RoomsService {
     return room;
   }
 
-  /**
-   * Distribui uma única mão compartilhada pros dois jogadores e sorteia,
-   * dentro dela, um grafo secreto diferente pra cada um. Não mexe em
-   * status/questionLog/rematchVotes — quem chama decide quando virar o
-   * status, e só depois que isto aqui já tiver funcionado (ver
-   * `finishRematchReset`).
-   */
   async assignHands(code: string, hand: GraphWithProperties[]): Promise<Room> {
     const room = await this.getRoom(code);
     if (!room.players[0] || !room.players[1]) {
@@ -117,7 +104,6 @@ export class RoomsService {
     return room;
   }
 
-  /** Sorteia dois índices distintos em [0, size) com distribuição uniforme. */
   private pickDistinctIndices(size: number): [number, number] {
     const first = Math.floor(Math.random() * size);
     let second = Math.floor(Math.random() * (size - 1));
@@ -125,12 +111,6 @@ export class RoomsService {
     return [first, second];
   }
 
-  /**
-   * Recebe o `room` já mutado (por `filterOpponentGraphs`, por exemplo) em
-   * vez de buscar uma cópia nova do store — senão a redução de
-   * `remainingOpponentGraphIds` feita antes desta chamada se perde e nunca
-   * é persistida.
-   */
   async recordQuestion(room: Room, entry: QuestionLogEntry): Promise<Room> {
     room.questionLog.push(entry);
     room.currentTurn = room.currentTurn === 'player1' ? 'player2' : 'player1';
@@ -138,12 +118,6 @@ export class RoomsService {
     return room;
   }
 
-  /**
-   * Elimina, dentro da mão compartilhada da sala, os candidatos cuja
-   * resposta diverge da resposta real do grafo secreto do oponente.
-   * `remainingGraphIds` reflete o total possível na mão compartilhada
-   * (global), não uma cópia local recalculada por cliente.
-   */
   filterOpponentGraphs(
     room: Room,
     role: 'player1' | 'player2',
@@ -207,7 +181,6 @@ export class RoomsService {
     await this.roomStore.set(room);
   }
 
-  /** Só registra o voto — não mexe em status, mão ou placar. */
   async requestRematch(
     code: string,
     role: 'player1' | 'player2',
@@ -223,12 +196,6 @@ export class RoomsService {
     return bothVoted;
   }
 
-  /**
-   * Só deve ser chamado depois que `assignHands` já rodou com sucesso pra
-   * mão nova. Vira o status pra IN_PROGRESS e zera log/votos/placar — se
-   * isso rodasse antes de `assignHands`, uma falha na geração da mão
-   * deixaria a sala IN_PROGRESS sem grafo nenhum (foi o bug real).
-   */
   async finishRematchReset(code: string): Promise<Room> {
     const room = await this.getRoom(code);
     room.status = 'IN_PROGRESS';
@@ -243,7 +210,6 @@ export class RoomsService {
     return room;
   }
 
-  /** Grafo secreto do oponente, dentro da mão compartilhada da sala. */
   getActiveOpponentGraph(
     room: Room,
     role: 'player1' | 'player2',

@@ -12,12 +12,6 @@ import { GraphGeneratorService } from '../graphs/graph-generator.service';
 import { GraphPropertiesService } from '../graphs/graph-properties.service';
 import { Question, answerQuestion } from '../questions/question-catalog';
 
-/**
- * Um evento por ação do jogo. Mantenha os payloads pequenos e nomeados
- * de forma consistente entre cliente e servidor — copie esses nomes
- * literalmente no frontend (entities/room/api) pra evitar bugs de digitação
- * em strings soltas.
- */
 const EVENTS = {
   CREATE_ROOM: 'room:create',
   JOIN_ROOM: 'room:join',
@@ -26,7 +20,7 @@ const EVENTS = {
   MAKE_GUESS: 'game:make-guess',
   CLOSE_ROOM: 'room:close',
   REMATCH: 'game:rematch',
-  // Eventos emitidos pelo servidor (broadcast):
+  // Broadcast events (server -> clients)
   ROOM_UPDATED: 'room:updated',
   OPPONENT_JOINED: 'room:opponent-joined',
   QUESTION_ANSWERED: 'game:question-answered',
@@ -38,11 +32,6 @@ const EVENTS = {
   cors: { origin: process.env.FRONTEND_URL ?? 'http://localhost:3000' },
 })
 export class RoomsGateway implements OnGatewayDisconnect {
-  /**
-   * Um reload de página derruba o socket antes do novo conectar e mandar
-   * RESUME_ROOM. Sem essa folga, handleDisconnect já teria removido o
-   * jogador da sala antes do resume chegar.
-   */
   private static readonly RECONNECT_GRACE_MS = 8000;
 
   @WebSocketServer()
@@ -115,11 +104,6 @@ export class RoomsGateway implements OnGatewayDisconnect {
     return { code: updatedRoom.code, ...roomState };
   }
 
-  /**
-   * Reassocia o socket novo (após reload/reconexão) ao jogador salvo pelo
-   * cliente em localStorage, em vez de exigir um JOIN_ROOM — que falharia
-   * porque a sala já está cheia.
-   */
   @SubscribeMessage(EVENTS.RESUME_ROOM)
   async handleResumeRoom(
     @MessageBody()
@@ -263,10 +247,6 @@ export class RoomsGateway implements OnGatewayDisconnect {
       }));
       await this.roomsService.assignHands(room.code, hand);
     } catch {
-      // A sala continua FINISHED com os dois votos já contados — o
-      // próximo clique em "revanche" tenta gerar a mão de novo sem exigir
-      // voto de novo. Isso nunca deixa a sala IN_PROGRESS sem mão, e o ack
-      // sempre responde (nunca mais trava em timeout por exceção).
       return { accepted: false, status: 'FINISHED' };
     }
     const restartedRoom = await this.roomsService.finishRematchReset(room.code);
@@ -297,13 +277,6 @@ export class RoomsGateway implements OnGatewayDisconnect {
     return { closed: true };
   }
 
-  /**
-   * Não remove o jogador na hora — um reload de página também dispara
-   * disconnect. Espera uma folga pro cliente reconectar e mandar
-   * RESUME_ROOM; só remove de verdade se o socket ainda estiver "velho"
-   * depois da espera (removePlayer só acha o jogador pelo socketId antigo,
-   * então se o resume já trocou o socketId, isso vira um no-op).
-   */
   async handleDisconnect(client: Socket): Promise<void> {
     const staleSocketId = client.id;
     setTimeout(() => {

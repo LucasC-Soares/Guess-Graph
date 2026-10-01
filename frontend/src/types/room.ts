@@ -22,10 +22,6 @@ export interface QuestionAnsweredDTO {
   currentTurn: 'player1' | 'player2';
 }
 
-/**
- * TODO: ajustar conforme o payload real emitido pelo gateway
- * (OPPONENT_JOINED / ROOM_UPDATED).
- */
 export interface RoomStateDTO {
   status: RoomStatus;
   hand: GraphDTO[];
