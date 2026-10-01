@@ -11,11 +11,6 @@ interface AskQuestionPanelProps {
   isYourTurn: boolean;
 }
 
-/**
- * TODO: renderizar um botão pra cada QuestionType (usando QUESTION_LABELS),
- * desabilitados se !isYourTurn. MAX_DEGREE_GREATER_THAN precisa de um
- * input numérico extra antes de habilitar o botão.
- */
 export function AskQuestionPanel({ isYourTurn }: AskQuestionPanelProps) {
   const { locale, t } = useI18n();
   const { askQuestion } = useGameActions();

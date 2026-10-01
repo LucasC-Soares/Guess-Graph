@@ -11,10 +11,6 @@ import { joinRoom } from '../api/room-socket-api';
 import { useState } from 'react';
 import { useI18n } from '@/lib/i18n-context';
 
-/**
- * TODO: mesmo padrão do CreateRoomForm, mas com campo de código +
- * chamando joinRoom(code, username) em vez de createRoom.
- */
 export function JoinRoomForm() {
   const router = useRouter();
   const { t } = useI18n();

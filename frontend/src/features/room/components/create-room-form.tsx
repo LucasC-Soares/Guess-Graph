@@ -11,11 +11,6 @@ import { createRoom } from '../api/room-socket-api';
 import { useState } from 'react';
 import { useI18n } from '@/lib/i18n-context';
 
-/**
- * TODO:
- * 1. useForm<CreateRoomFormValues>({ resolver: zodResolver(createRoomSchema) })
- * 2. onSubmit: getSocket().connect() -> createRoom(username) -> router.push(`/room/${code}`)
- */
 export function CreateRoomForm() {
   const router = useRouter();
   const { t } = useI18n();

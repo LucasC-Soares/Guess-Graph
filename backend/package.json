@@ -2,6 +2,19 @@
   "name": "guess-graph-backend",
   "version": "0.1.0",
   "private": true,
+  "author": {
+    "name": "Lucas Costa Soares",
+    "url": "https://www.linkedin.com/in/lucas-costa-soares-10701b37b/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LucasC-Soares/Guess-Graph.git"
+  },
+  "bugs": {
+    "url": "https://github.com/LucasC-Soares/Guess-Graph/issues"
+  },
+  "homepage": "https://github.com/LucasC-Soares/Guess-Graph#readme",
+  "license": "MIT",
   "overrides": {
     "lodash": "4.18.1",
     "multer": "^2.3.0"
@@ -35,6 +48,7 @@
       "!modules/**/*.spec.ts",
       "!modules/**/*.int-spec.ts",
       "!modules/**/*.e2e-spec.ts",
+      "!modules/**/*.module.ts",
       "!modules/**/interfaces/**"
     ],
     "coverageDirectory": "../coverage",

@@ -2,6 +2,19 @@
   "name": "guess-graph-frontend",
   "version": "0.1.0",
   "private": true,
+  "author": {
+    "name": "Lucas Costa Soares",
+    "url": "https://www.linkedin.com/in/lucas-costa-soares-10701b37b/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LucasC-Soares/Guess-Graph.git"
+  },
+  "bugs": {
+    "url": "https://github.com/LucasC-Soares/Guess-Graph/issues"
+  },
+  "homepage": "https://github.com/LucasC-Soares/Guess-Graph#readme",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -23,11 +36,12 @@
   "devDependencies": {
     "@eslint/js": "^9.0.0",
     "@next/eslint-plugin-next": "^16.3.5",
-    "@typescript-eslint/eslint-plugin": "^8.70.0",
-    "@typescript-eslint/parser": "^8.70.0",
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^20.11.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.70.0",
+    "@typescript-eslint/parser": "^8.70.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.3.5",
     "eslint-plugin-import": "^2.31.0",
@@ -35,6 +49,7 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "globals": "^15.0.0",
     "prettier": "^3.9.8",
+    "tailwindcss": "^4.3.3",
     "typescript": "^5.4.0"
   }
 }

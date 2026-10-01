@@ -59,7 +59,7 @@ describe('RoomsService', () => {
     );
   });
 
-    it('assigns a shared hand with a distinct secret graph per player and alternates the turn when recording a question', async () => {
+  it('assigns a shared hand with a distinct secret graph per player and alternates the turn when recording a question', async () => {
     const code = await service.createRoom('Alice', 'socket-1');
     await service.joinRoom(code, 'Bob', 'socket-2');
     const properties = {
@@ -73,11 +73,19 @@ describe('RoomsService', () => {
     };
     const hand = [
       {
-        graph: { id: 'graph-1', vertexCount: 2, edges: [[0, 1]] as [number, number][] },
+        graph: {
+          id: 'graph-1',
+          vertexCount: 2,
+          edges: [[0, 1]] as [number, number][],
+        },
         properties,
       },
       {
-        graph: { id: 'graph-2', vertexCount: 2, edges: [[0, 1]] as [number, number][] },
+        graph: {
+          id: 'graph-2',
+          vertexCount: 2,
+          edges: [[0, 1]] as [number, number][],
+        },
         properties,
       },
     ];
@@ -85,7 +93,7 @@ describe('RoomsService', () => {
     const fetchedRoom = await service.getRoom(code);
     const room = await service.recordQuestion(fetchedRoom, {
       askedBy: 'player1',
-      question: { type: QuestionType.IS_TREE },
+      questionLabel: QuestionType.IS_TREE,
       answer: true,
       eliminatedGraphIds: [],
       remainingGraphIds: ['graph-1', 'graph-2'],
@@ -119,10 +127,28 @@ describe('RoomsService', () => {
     expect(await service.requestRematch(code, 'player1')).toBe(false);
     expect((await service.getRoom(code)).status).toBe('FINISHED');
     expect(await service.requestRematch(code, 'player2')).toBe(true);
-    const restartedRoom = await service.getRoom(code);
+    const restartedRoom = await service.finishRematchReset(code);
     expect(restartedRoom.status).toBe('IN_PROGRESS');
     expect(restartedRoom.rematchVotes).toEqual([]);
     expect(restartedRoom.questionLog).toEqual([]);
     expect(restartedRoom.hand).toEqual([]);
+  });
+
+    it('votes for rematch without resetting the room until finishRematchReset runs', async () => {
+    const code = await service.createRoom('Alice', 'socket-1');
+    await service.joinRoom(code, 'Bob', 'socket-2');
+    const room = await service.getRoom(code);
+    room.status = 'FINISHED';
+    await service.saveRoom(room);
+
+    expect(await service.requestRematch(code, 'player1')).toBe(false);
+    expect((await service.getRoom(code)).status).toBe('FINISHED');
+    expect(await service.requestRematch(code, 'player2')).toBe(true);
+    expect((await service.getRoom(code)).status).toBe('FINISHED');
+
+    const restartedRoom = await service.finishRematchReset(code);
+    expect(restartedRoom.status).toBe('IN_PROGRESS');
+    expect(restartedRoom.rematchVotes).toEqual([]);
+    expect(restartedRoom.questionLog).toEqual([]);
   });
 });

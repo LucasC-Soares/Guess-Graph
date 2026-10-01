@@ -1,32 +1,32 @@
-# API do Guess Graph
+# Guess Graph API
 
-## Visão geral
+## Overview
 
-O backend expõe:
+The backend exposes:
 
-- **Socket.IO**: protocolo usado pelo jogo para criar salas, entrar em partidas, fazer perguntas e chutar grafos.
+- **Socket.IO**: protocol used by the game to create rooms, join matches, ask questions, and guess graphs.
 
-A API de jogo é orientada a eventos. O cliente envia uma ação e o servidor responde pelo acknowledgement do evento e/ou por um evento emitido para os participantes da sala.
+The game API is event-driven. The client sends an action, and the server responds with the event acknowledgement and/or an event emitted to the participants in the room.
 
-## Executar localmente
+## Run locally
 
-No diretório `backend/`:
+In the `backend/` directory:
 
 ```bash
 npm install
 npm run start:dev
 ```
 
-O backend precisa de um Redis disponível em `REDIS_URL` (por padrão,
+The backend requires Redis to be available at `REDIS_URL` (default:
 `redis://localhost:6379`).
 
-Com o backend em `http://localhost:3001`:
+With the backend running at `http://localhost:3001`:
 
 - Socket.IO: `http://localhost:3001`
 
-A porta pode ser alterada com `PORT`. A origem permitida pode ser alterada com `FRONTEND_URL`.
+The port can be changed with `PORT`. The allowed origin can be changed with `FRONTEND_URL`.
 
-## Conexão Socket.IO
+## Socket.IO connection
 
 ```ts
 import { io } from 'socket.io-client';
@@ -38,13 +38,13 @@ const socket = io('http://localhost:3001', {
 socket.connect();
 ```
 
-O cliente deve manter uma instância de socket por sessão. Depois de entrar ou criar uma sala, registre os listeners dos eventos de servidor e remova-os ao desmontar a tela.
+The client should keep a single socket instance per session. After entering or creating a room, register the server event listeners and remove them when the screen unmounts.
 
-## Eventos enviados pelo cliente
+## Events sent by the client
 
 ### `room:create`
 
-Cria uma sala e coloca o socket na room do Socket.IO.
+Creates a room and places the socket in the Socket.IO room.
 
 Payload:
 
@@ -54,7 +54,7 @@ Payload:
 }
 ```
 
-Acknowledgement de sucesso:
+Successful acknowledgement:
 
 ```json
 {
@@ -63,7 +63,7 @@ Acknowledgement de sucesso:
 }
 ```
 
-Exemplo:
+Example:
 
 ```ts
 socket.emit('room:create', { username: 'Alice' }, (response) => {
@@ -73,7 +73,7 @@ socket.emit('room:create', { username: 'Alice' }, (response) => {
 
 ### `room:join`
 
-Entra em uma sala que ainda aguarda o segundo jogador. Quando a entrada é concluída, o servidor gera as duas mãos e emite `room:opponent-joined` para os dois jogadores.
+Joins a room that is still waiting for the second player. Once entry is completed, the server creates both hands and emits `room:opponent-joined` to both players.
 
 Payload:
 
@@ -95,7 +95,7 @@ Acknowledgement:
 
 ### `game:ask-question`
 
-Faz uma pergunta sobre o grafo secreto do oponente. A sala e o jogador são obtidos do socket associado; o cliente não informa nem referencia o grafo do oponente.
+Asks a question about the opponent's secret graph. The room and player are resolved from the associated socket; the client does not send or reference the opponent graph.
 
 Payload:
 
@@ -107,7 +107,7 @@ Payload:
 }
 ```
 
-Pergunta parametrizada:
+Parameterized question:
 
 ```json
 {
@@ -131,19 +131,18 @@ Acknowledgement:
 }
 ```
 
-`eliminatedGraphIds` lista os grafos cuja propriedade não correspondeu à resposta.
-`remainingGraphIds` lista os candidatos ainda possiveis. O mesmo resultado e
-emitido para os dois sockets em `game:question-answered`.
+`eliminatedGraphIds` lists the graphs whose property did not match the answer.
+`remainingGraphIds` lists the candidates still possible. The same result is emitted to both sockets in `game:question-answered`.
 
 ### `game:make-guess`
 
-Chuta a identidade do alvo ativo. O alvo é resolvido pelo servidor a partir da sala e do jogador; `guessedGraphId` é a identidade chutada.
+Guesses the identity of the active target. The target is resolved by the server from the room and the player; `guessedGraphId` is the guessed identity.
 
 Payload:
 
 ```json
 {
-  "guessedGraphId": "graph-chutado"
+  "guessedGraphId": "graph-guessed"
 }
 ```
 
@@ -157,15 +156,13 @@ Acknowledgement:
 }
 ```
 
-Todo `make-guess` válido encerra a partida. Se `correct` for `true`, vence o
-jogador que chutou; se for `false`, vence o oponente.
+Any valid `make-guess` ends the match immediately. If `correct` is `true`, the player who guessed wins; if `false`, the opponent wins.
 
 ### `game:rematch`
 
-Solicita uma revanche. Não possui payload. A partida só reinicia quando os dois
-jogadores enviarem o evento.
+Requests a rematch. It has no payload. The match only restarts when both players emit the event.
 
-Enquanto aguarda o outro jogador, o acknowledgement é:
+While waiting for the other player, the acknowledgement is:
 
 ```json
 {
@@ -174,19 +171,17 @@ Enquanto aguarda o outro jogador, o acknowledgement é:
 }
 ```
 
-Quando os dois concordam, o servidor gera novas mãos, zera o placar e o histórico,
-restaura `IN_PROGRESS` e emite `room:opponent-joined` novamente.
+When both agree, the server generates new hands, resets the score and history, restores `IN_PROGRESS`, and emits `room:opponent-joined` again.
 
 ### `room:close`
 
-Encerra e remove a sala. Não possui payload e pode ser enviado por qualquer
-jogador conectado à sala.
+Closes and removes the room. It has no payload and can be sent by any player connected to the room.
 
-## Eventos emitidos pelo servidor
+## Events emitted by the server
 
 ### `room:opponent-joined`
 
-Emitido individualmente para cada jogador quando a sala fica completa. O evento informa apenas o estado da partida; nenhum grafo, referência ou propriedade é enviado.
+Emitted individually to each player when the room becomes complete. The event only reports the match state; no graph, reference, or property is sent.
 
 ```json
 {
@@ -196,14 +191,9 @@ Emitido individualmente para cada jogador quando a sala fica completa. O evento 
 }
 ```
 
-O grafo secreto e o conjunto de candidatos restantes são mantidos exclusivamente
-no estado da sala no Redis. O cliente recebe a estrutura publica para conseguir
-visualizar os grafos, mas nunca recebe suas propriedades calculadas.
+The secret graph and the remaining candidate set are kept exclusively in the room state in Redis. The client receives the public structure so it can render the graphs, but never receives the calculated properties.
 
-Uma pergunta nunca encerra a partida. A sala só termina quando
-`game:make-guess` for enviado no turno correto e `guessedGraphId` corresponder
-ao grafo que o servidor está verificando, independentemente de quantos
-candidatos ainda existam.
+A question never ends the match. The room only ends when `game:make-guess` is sent on the correct turn and `guessedGraphId` matches the graph the server is checking, regardless of how many candidates remain.
 
 ### `game:question-answered`
 
@@ -219,9 +209,9 @@ candidatos ainda existam.
 
 ### `room:updated`
 
-Pode ser emitido após um chute, com a atualização do turno e da pontuação, ou quando um jogador desconecta.
+May be emitted after a guess, updating turn and score, or when a player disconnects.
 
-Após chute:
+After a guess:
 
 ```json
 {
@@ -230,7 +220,7 @@ Após chute:
 }
 ```
 
-Após desconexão:
+After a disconnect:
 
 ```json
 {
@@ -250,20 +240,20 @@ Após desconexão:
 
 ### `room:closed`
 
-Emitido para os jogadores quando a sala é encerrada e removida do Redis.
+Emitted to players when the room is closed and removed from Redis.
 
-## Tipos de pergunta
+## Question types
 
-| Tipo | Parametros | Significado |
+| Type | Parameters | Meaning |
 | --- | --- | --- |
-| `IS_CONNECTED` | nenhum | O grafo é conexo? |
-| `IS_BIPARTITE` | nenhum | O grafo é bipartido? |
-| `HAS_CYCLE` | nenhum | O grafo possui ciclo? |
-| `IS_TREE` | nenhum | O grafo é uma árvore? |
-| `HAS_BRIDGE` | nenhum | O grafo possui ponte? |
-| `MAX_DEGREE_GREATER_THAN` | `params.threshold` | O grau máximo é maior que o limite? |
+| `IS_CONNECTED` | none | Is the graph connected? |
+| `IS_BIPARTITE` | none | Is the graph bipartite? |
+| `HAS_CYCLE` | none | Does the graph contain a cycle? |
+| `IS_TREE` | none | Is the graph a tree? |
+| `HAS_BRIDGE` | none | Does the graph contain a bridge? |
+| `MAX_DEGREE_GREATER_THAN` | `params.threshold` | Is the maximum degree greater than the threshold? |
 
-## Modelo de grafo publico
+## Public graph model
 
 ```ts
 interface Graph {
@@ -273,26 +263,26 @@ interface Graph {
 }
 ```
 
-Vértices são inteiros de `0` a `vertexCount - 1`. As arestas são não direcionadas e aparecem como pares de vértices.
+Vertices are integers from `0` to `vertexCount - 1`. Edges are undirected and appear as pairs of vertices.
 
-## Regras de turno
+## Turn rules
 
-1. A sala é criada com status `WAITING_FOR_PLAYER`.
-2. O segundo jogador muda o status para `IN_PROGRESS`.
-3. A partida inicia com `currentTurn: "player1"`.
-4. Perguntas válidas registram uma entrada no log e alternam o turno.
-5. Chutes válidos alternam o turno quando a partida não termina.
-6. Um jogador que não possui o turno recebe erro e a ação não altera o estado.
-7. Uma sala possui uma partida ativa por vez; a revanche reinicia a mesma sala somente com concordância dos dois jogadores.
+1. A room is created with status `WAITING_FOR_PLAYER`.
+2. The second player changes the status to `IN_PROGRESS`.
+3. The match starts with `currentTurn: "player1"`.
+4. Valid questions record an entry in the log and switch the turn.
+5. Valid guesses switch the turn when the match is not over.
+6. A player who is not currently taking their turn receives an error and the action does not alter the state.
+7. A room has only one active match at a time; rematches restart the same room only with agreement from both players.
 
-## Erros
+## Errors
 
-O handler NestJS pode rejeitar um evento com mensagens como:
+The NestJS handler may reject an event with messages such as:
 
-- `Sala não encontrada`
-- `A sala já está cheia ou em andamento`
-- `Não é a vez deste jogador`
-- `Grafo não encontrado`
-- `Nome e socket são obrigatórios`
+- `Room not found`
+- `The room is already full or in progress`
+- `It is not this player's turn`
+- `Graph not found`
+- `Name and socket are required`
 
-O cliente deve tratar a falha do acknowledgement ou do mecanismo de erro do Socket.IO sem assumir que a ação foi aplicada.
+The client should handle acknowledgement failure or the Socket.IO error mechanism without assuming the action was applied.

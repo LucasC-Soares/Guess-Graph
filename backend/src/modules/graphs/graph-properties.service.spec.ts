@@ -2,10 +2,6 @@ import { Test } from '@nestjs/testing';
 import { GraphPropertiesService } from './graph-properties.service';
 import { Graph } from './interfaces/graph.interface';
 
-/**
- * TODO: casos clássicos de grafos pequenos, fáceis de conferir na mão —
- * bom oráculo pra validar cada checagem isoladamente.
- */
 describe('GraphPropertiesService', () => {
   let service: GraphPropertiesService;
 

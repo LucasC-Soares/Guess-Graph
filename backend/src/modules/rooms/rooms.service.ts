@@ -8,14 +8,12 @@ import {
 import { RedisRoomStore, RoomStore } from './redis-room-store';
 import { Question, answerQuestion } from '../questions/question-catalog';
 
-/** Estado efêmero das salas, compartilhado entre instâncias via Redis. */
 @Injectable()
 export class RoomsService {
   private readonly codeAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
   constructor(@Inject(RedisRoomStore) private readonly roomStore: RoomStore) {}
 
-  /** Gera um código curto e aumenta o comprimento se houver colisão. */
   async generateRoomCode(): Promise<string> {
     let codeLength = 5;
     while (true) {
@@ -61,6 +59,23 @@ export class RoomsService {
     return room;
   }
 
+  async resumePlayer(
+    code: string,
+    role: 'player1' | 'player2',
+    username: string,
+    socketId: string,
+  ): Promise<Room> {
+    const room = await this.getRoom(code);
+    const index = role === 'player1' ? 0 : 1;
+    const player = room.players[index];
+    if (!player || player.username !== username.trim()) {
+      throw new Error('Não foi possível retomar a sala');
+    }
+    player.socketId = socketId;
+    await this.roomStore.set(room);
+    return room;
+  }
+
   async getRoom(code: string): Promise<Room> {
     const normalizedCode = code.trim().toUpperCase();
     const room = await this.roomStore.get(normalizedCode);
@@ -68,10 +83,6 @@ export class RoomsService {
     return room;
   }
 
-  /**
-   * Distribui uma única mão compartilhada pros dois jogadores e sorteia,
-   * dentro dela, um grafo secreto diferente pra cada um.
-   */
   async assignHands(code: string, hand: GraphWithProperties[]): Promise<Room> {
     const room = await this.getRoom(code);
     if (!room.players[0] || !room.players[1]) {
@@ -93,7 +104,6 @@ export class RoomsService {
     return room;
   }
 
-  /** Sorteia dois índices distintos em [0, size) com distribuição uniforme. */
   private pickDistinctIndices(size: number): [number, number] {
     const first = Math.floor(Math.random() * size);
     let second = Math.floor(Math.random() * (size - 1));
@@ -101,12 +111,6 @@ export class RoomsService {
     return [first, second];
   }
 
-  /**
-   * Recebe o `room` já mutado (por `filterOpponentGraphs`, por exemplo) em
-   * vez de buscar uma cópia nova do store — senão a redução de
-   * `remainingOpponentGraphIds` feita antes desta chamada se perde e nunca
-   * é persistida.
-   */
   async recordQuestion(room: Room, entry: QuestionLogEntry): Promise<Room> {
     room.questionLog.push(entry);
     room.currentTurn = room.currentTurn === 'player1' ? 'player2' : 'player1';
@@ -114,12 +118,6 @@ export class RoomsService {
     return room;
   }
 
-  /**
-   * Elimina, dentro da mão compartilhada da sala, os candidatos cuja
-   * resposta diverge da resposta real do grafo secreto do oponente.
-   * `remainingGraphIds` reflete o total possível na mão compartilhada
-   * (global), não uma cópia local recalculada por cliente.
-   */
   filterOpponentGraphs(
     room: Room,
     role: 'player1' | 'player2',
@@ -183,10 +181,6 @@ export class RoomsService {
     await this.roomStore.set(room);
   }
 
-  /**
-   * A revanche começa com quem venceu a última partida — `currentTurn`
-   * já é o vencedor desde `handleMakeGuess`, então basta não sobrescrever.
-   */
   async requestRematch(
     code: string,
     role: 'player1' | 'player2',
@@ -197,26 +191,25 @@ export class RoomsService {
         'A revanche só pode ser solicitada após o fim da partida',
       );
     if (!room.rematchVotes.includes(role)) room.rematchVotes.push(role);
-    if (room.rematchVotes.length < 2) {
-      await this.roomStore.set(room);
-      return false;
-    }
+    const bothVoted = room.rematchVotes.length >= 2;
+    await this.roomStore.set(room);
+    return bothVoted;
+  }
+
+  async finishRematchReset(code: string): Promise<Room> {
+    const room = await this.getRoom(code);
     room.status = 'IN_PROGRESS';
     room.questionLog = [];
     room.rematchVotes = [];
-    room.hand = [];
     for (const player of room.players) {
       if (!player) continue;
-      player.secretGraphId = undefined;
-      player.remainingOpponentGraphIds = [];
       player.score = 0;
       player.guessedGraphIds = [];
     }
     await this.roomStore.set(room);
-    return true;
+    return room;
   }
 
-  /** Grafo secreto do oponente, dentro da mão compartilhada da sala. */
   getActiveOpponentGraph(
     room: Room,
     role: 'player1' | 'player2',

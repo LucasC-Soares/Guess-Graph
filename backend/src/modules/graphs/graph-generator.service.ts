@@ -2,11 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { Graph } from './interfaces/graph.interface';
 import { GraphPropertiesService } from './graph-properties.service';
 
-/**
- * Gera grafos aleatórios simples pra popular a "mão" de cada jogador.
- * Mantenha isso determinístico o suficiente pra dar variedade de
- * propriedades (não adianta gerar 5 grafos todos conexos, por exemplo).
- */
 @Injectable()
 export class GraphGeneratorService {
   static readonly HAND_SIZE = 12;
@@ -23,19 +18,7 @@ export class GraphGeneratorService {
     const hand: Graph[] = [];
 
     while (hand.length < GraphGeneratorService.HAND_SIZE) {
-      const vertexCount =
-        GraphGeneratorService.MIN_HAND_VERTEX_COUNT +
-        Math.floor(
-          Math.random() *
-            (GraphGeneratorService.MAX_HAND_VERTEX_COUNT -
-              GraphGeneratorService.MIN_HAND_VERTEX_COUNT +
-              1),
-        );
-
-      const graph = this.generateWithUniqueSignature(
-        vertexCount,
-        seenSignatures,
-      );
+      const graph = this.generateWithUniqueSignature(seenSignatures);
       seenSignatures.add(this.computeSignature(graph));
       hand.push(graph);
     }
@@ -43,36 +26,35 @@ export class GraphGeneratorService {
     return hand;
   }
 
-  /**
-   * Gera um grafo cuja assinatura (respostas às perguntas do cara-a-cara)
-   * ainda não apareceu na mão — garante que dá pra eliminar todos os
-   * outros grafos até sobrar só a resposta certa.
-   */
-  private generateWithUniqueSignature(
-    vertexCount: number,
-    seenSignatures: Set<string>,
-  ): Graph {
+  private randomHandVertexCount(): number {
+    return (
+      GraphGeneratorService.MIN_HAND_VERTEX_COUNT +
+      Math.floor(
+        Math.random() *
+          (GraphGeneratorService.MAX_HAND_VERTEX_COUNT -
+            GraphGeneratorService.MIN_HAND_VERTEX_COUNT +
+            1),
+      )
+    );
+  }
+
+  private generateWithUniqueSignature(seenSignatures: Set<string>): Graph {
     for (
       let attempt = 0;
       attempt < GraphGeneratorService.MAX_UNIQUE_ATTEMPTS;
       attempt += 1
     ) {
+      const vertexCount = this.randomHandVertexCount();
       const [candidate] = this.generateBatch(1, vertexCount);
       if (!seenSignatures.has(this.computeSignature(candidate))) {
         return candidate;
       }
     }
     throw new Error(
-      `Não foi possível gerar assinatura única para vertexCount=${vertexCount} ` +
-        `após ${GraphGeneratorService.MAX_UNIQUE_ATTEMPTS} tentativas`,
+      `Não foi possível gerar assinatura única após ${GraphGeneratorService.MAX_UNIQUE_ATTEMPTS} tentativas`,
     );
   }
 
-  /**
-   * Assinatura = respostas às perguntas do cara-a-cara.
-   * isTree é derivado (isConnected && !hasCycle) e minDegree não é
-   * perguntado, então nenhum dos dois entra aqui.
-   */
   private computeSignature(graph: Graph): string {
     const { isConnected, isBipartite, hasCycle, hasBridge, maxDegree } =
       this.graphPropertiesService.computeAll(graph);
@@ -85,9 +67,6 @@ export class GraphGeneratorService {
     ]);
   }
 
-  /**
-   * Gera `count` grafos aleatórios com `vertexCount` vértices cada.
-   */
   generateBatch(count: number, vertexCount: number): Graph[] {
     if (
       !Number.isInteger(count) ||
@@ -109,11 +88,6 @@ export class GraphGeneratorService {
     });
   }
 
-  /**
-   * ID único sem depender de lib externa: timestamp em base36 (garante
-   * ordem/monotonicidade dentro do processo) + sufixo aleatório em base36
-   * (evita colisão entre chamadas no mesmo milissegundo).
-   */
   private generateId(): string {
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).slice(2, 10);
