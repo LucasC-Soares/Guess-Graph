@@ -111,7 +111,8 @@ button { cursor: pointer; }
 .about-links .eyebrow { display: block; margin-bottom: 24px; }
 .about-link { align-items: center; border-top: 1px solid var(--line); display: flex; justify-content: space-between; padding: 18px 0; text-decoration: none; }
 .about-link span { color: var(--muted); font: .78rem/1.2 system-ui, sans-serif; }
-.about-link strong { color: var(--ink); font: 700 1rem/1 system-ui, sans-serif; }
+.about-link strong { align-items: center; color: var(--ink); display: flex; font: 700 1rem/1 system-ui, sans-serif; gap: 7px; }
+.brand-icon { fill: currentColor; height: 18px; width: 18px; }
 .about-link:hover strong { color: var(--teal); }
 .closed-room-frame { align-items: center; display: flex; min-height: calc(100vh - 112px); }
 .closed-room { margin: 0 auto; max-width: 680px; overflow: hidden; padding: 48px clamp(24px, 7vw, 76px) 42px; position: relative; text-align: center; width: 100%; }
